@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .quiz-container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #F44336;
+      margin-bottom: 20px;
+    }
+
+    .question {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: blue;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+
+    /* ... (your existing styles) ... */
+
+    .option {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      /* Add some margin between buttons */
+      transition: background-color 0.3s ease;
+    }
+
+    .option:hover {
+      background-color: #45a049;
+    }
+
+    .option:disabled {
+      background-color: #ddd;
+      color: #2196F3;
+      cursor: not-allowed;
+    }
+
+
+    .stats-panel {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #stats-label {
+      color: black;
+    }
+
+    #timer-label {
+      font-weight: bold;
+    }
+
+    #submit-button {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #submit-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-container">
+    <h1>STANLEY CUP TRIVIA</h1>
+    <div class="question" id="question-label"></div>
+    <div id="options-container" class="options"></div>
+    <div id="score-display"></div>
+    <div class="stats-panel">
+      <span id="timer-label">Time: 30</span>
+      <span id="stats-label">Score: 0 Right: 0 Wrong: 0 Expired: 0 Time Spent: 0 sec.</span>
+      <button id="submit-button">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    let currentQuestionIndex = 0;
+    let remainingTime = 30;
+    let score = 0;
+    let questionsCorrect = 0;
+    let questionsMissed = 0;
+    let questionsTimedOut = 0;
+    let totalTimePlayed = 0;
+    let selectedOption = null; // Variable to track the selected option
+    let submitButtonPressed = false;
+    let timer;
+    let totalTimer;
+    let scoreDisplay = document.getElementById('score-display');
+
+    // Your HTML elements
+    const questionLabel = document.getElementById('question-label');
+    const optionsContainer = document.getElementById('options-container');
+    const timerLabel = document.getElementById('timer-label');
+    const statsLabel = document.getElementById('stats-label');
+    const submitButton = document.getElementById('submit-button');
+    const questions = [
+      "Who won the Stanley Cup in 1892–93?,Montreal Crystals,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Montreal Hockey Club","Who won the Stanley Cup in 1893–94?,Montreal Crystals,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Montreal Hockey Club","Who won the Stanley Cup in 1894–95?,Montreal Crystals,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Montreal Victorias","Who won the Stanley Cup in 1895–96?,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Winnipeg Victorias,Winnipeg Victorias","Who won the Stanley Cup in 1895–97?,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Winnipeg Victorias,Montreal Victorias","Who won the Stanley Cup in 1896–97?,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Quebec Hockey Club,Montreal Victorias","Who won the Stanley Cup in 1897–98?,Montreal Hockey Club,Montreal Shamrocks,Montreal Victorias,Quebec Hockey Club,Montreal Victorias","Who won the Stanley Cup in 1898–99?,Montreal Hockey Club,Montreal Shamrocks,Montreal Victorias,Ottawa Hockey Club,Montreal Shamrocks","Who won the Stanley Cup in 1899–1900?,Montreal Hockey Club,Montreal Shamrocks,Montreal Victorias,Ottawa Hockey Club,Montreal Shamrocks","Who won the Stanley Cup in 1900–01?,Montreal Hockey Club,Montreal Shamrocks,Montreal Victorias,Ottawa Hockey Club,Winnipeg Victorias","Who won the Stanley Cup in 1901–02?,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Quebec Hockey Club,Montreal Hockey Club","Who won the Stanley Cup in 1902–03?,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Quebec Hockey Club,Ottawa Hockey Club","Who won the Stanley Cup in 1903–04?,Montreal Hockey Club,Montreal Shamrocks,Montreal Victorias,Quebec Hockey Club,Ottawa Hockey Club","Who won the Stanley Cup in 1904–05?,Montreal Hockey Club,Montreal Victorias,Ottawa Hockey Club,Quebec Hockey Club,Ottawa Hockey Club","Who won the Stanley Cup in 1905–06?,Montreal Hockey Club,Montreal Shamrocks,Montreal Wanderers,Quebec Hockey Club,Montreal Wanderers","Who won the Stanley Cup in 1906–07?,Kenora Thistles,Montreal Wanderers,Montreal Victorias,Ottawa Senators,Kenora Thistles","Who won the Stanley Cup in 1906–08?,Montreal Shamrocks,Montreal Wanderers,Ottawa Hockey Club,Quebec Hockey Club,Montreal Wanderers","Who won the Stanley Cup in 1907–08?,Montreal Shamrocks,Montreal Wanderers,Ottawa Hockey Club,Quebec Hockey Club,Montreal Wanderers","Who won the Stanley Cup in 1908–09?,Montreal Shamrocks,Montreal Wanderers,Ottawa Hockey Club,Quebec Hockey Club,Ottawa Hockey Club","Who won the Stanley Cup in 1909–10?,Montreal Shamrocks,Montreal Wanderers,Montreal Victorias,Ottawa Hockey Club,Montreal Victorias","Who won the Stanley Cup in 1910–11?,Montreal Shamrocks,Montreal Wanderers,Ottawa Hockey Club,Quebec Bulldogs,Ottawa Hockey Club","Who won the Stanley Cup in 1911–12?,Montreal Canadiens,Montreal Wanderers,Ottawa Hockey Club,Quebec Bulldogs,Quebec Bulldogs","Who won the Stanley Cup in 1912–13?,Montreal Canadiens,Montreal Wanderers,Ottawa Hockey Club,Quebec Bulldogs,Quebec Bulldogs","Who won the Stanley Cup in 1913–14?,Montreal Canadiens,Montreal Wanderers,Quebec Bulldogs,Toronto Hoceky Club,Toronto Hoceky Club","Who won the Stanley Cup in 1914–15?,Montreal Canadiens,Ottawa Senators,Quebec Bulldogs,Vancouver Millionaires,Vancouver Millionaires","Who won the Stanley Cup in 1915–16?,Montreal Canadiens,Montreal Wanderers,Montreal Canadiens,Quebec Bulldogs,Montreal Canadiens","Who won the Stanley Cup in 1916–17?,Montreal Canadiens,Ottawa Senators,Seattle Metropolitans,Quebec Bulldogs,Seattle Metropolitans","Who won the Stanley Cup in 1917–18?,Montreal Canadiens,Seattle Metropolitans,Toronto Arenas,Vancouver Millionaires,Toronto Arenas","Who won the Stanley Cup in 1918–19?,Montreal Canadiens,No One,Ottawa Senators,Seattle Metropolitans,No One","Who won the Stanley Cup in 1919–20?,No One,Ottawa Senators,Seattle Metropolitans,Vancouver Millionaires,Ottawa Senators","Who won the Stanley Cup in 1920–21?,Ottawa Senators,Seattle Metropolitans,Toronto St. Pats,Vancouver Millionaires,Ottawa Senators","Who won the Stanley Cup in 1921–22?,Ottawa Senators,Seattle Metropolitans,Toronto St. Pats,Vancouver Millionaires,Toronto St. Pats","Who won the Stanley Cup in 1922–23?,Edmonton Eskimos,Montreal Canadiens,Ottawa Senators,Vancouver Maroons,Ottawa Senators","Who won the Stanley Cup in 1923–24?,Calgary Tigers,Montreal Canadiens,Ottawa Senators,Vancouver Maroons,Montreal Canadiens","Who won the Stanley Cup in 1924–25?,Calgary Tigers,Hamilton Tigers,Montreal Canadiens,Victoria Cougars,Victoria Cougars","Who won the Stanley Cup in 1925–26?,Edmonton Eskimos,Montreal Maroons,Ottawa Senators,Victoria Cougars,Montreal Maroons","Who won the Stanley Cup in 1926–27?,Boston Bruins,Montreal Canadiens,New York Rangers,Ottawa Senators,Ottawa Senators","Who won the Stanley Cup in 1927–28?,Boston Bruins,Montreal Maroons,New York Rangers,Ottawa Senators,New York Rangers","Who won the Stanley Cup in 1928–29?,Boston Bruins,Montreal Canadiens,New York Rangers,Toronto Maple Leafs,Boston Bruins","Who won the Stanley Cup in 1929–30?,Boston Bruins,Montreal Canadiens,Montreal Maroons,New York Rangers,Montreal Canadiens","Who won the Stanley Cup in 1930–31?,Boston Bruins,Chicago Black Hawks,Montreal Canadiens,New York Rangers,Montreal Canadiens","Who won the Stanley Cup in 1931–32?,Montreal Canadiens,Montreal Maroons,New York Rangers,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1932–33?,Boston Bruins,Detroit Red Wings,New York Rangers,Toronto Maple Leafs,New York Rangers","Who won the Stanley Cup in 1933–34?,Chicago Black Hawks,Detroit Red Wings,Montreal Maroons,Toronto Maple Leafs,Chicago Black Hawks","Who won the Stanley Cup in 1934–35?,Boston Bruins,Montreal Maroons,New York Rangers,Toronto Maple Leafs,Montreal Maroons","Who won the Stanley Cup in 1935–36?,Detroit Red Wings,Montreal Maroons,New York Americans,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 1936–37?,Detroit Red Wings,Montreal Canadiens,Montreal Maroons,New York Rangers,Detroit Red Wings","Who won the Stanley Cup in 1937–38?,Boston Bruins,Chicago Black Hawks,New York Americans,Toronto Maple Leafs,Chicago Black Hawks","Who won the Stanley Cup in 1938–39?,Boston Bruins,Detroit Red Wings,New York Rangers,Toronto Maple Leafs,Boston Bruins","Who won the Stanley Cup in 1939–40?,Boston Bruins,Detroit Red Wings,New York Rangers,Toronto Maple Leafs,New York Rangers","Who won the Stanley Cup in 1940–41?,Boston Bruins,Chicago Black Hawks,Detroit Red Wings,Toronto Maple Leafs,Boston Bruins","Who won the Stanley Cup in 1941–42?,Boston Bruins,Detroit Red Wings,New York Rangers,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1942–43?,Boston Bruins,Detroit Red Wings,Monntreal Canadiens,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 1943–44?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1944–45?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1945–46?,Boston Bruins,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Montreal Canadiens","Who won the Stanley Cup in 1946–47?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1947–48?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,New York Rangers,Toronto Maple Leafs","Who won the Stanley Cup in 1948–49?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1949–50?,Detroit Red Wings,Montreal Canadiens,New York Rangers,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 1950–51?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1951–52?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 1952–53?,Boston Bruins,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Montreal Canadiens","Who won the Stanley Cup in 1953–54?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 1954–55?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 1955–56?,Detroit Red Wings,Montreal Canadiens,New York Rangers,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1956–57?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,New York Rangers,Montreal Canadiens","Who won the Stanley Cup in 1957–58?,Boston Bruins,Detroit Red Wings,Montreal Canadiens,New York Rangers,Montreal Canadiens","Who won the Stanley Cup in 1958–59?,Boston Bruins,Chicago Black Hawks,Montreal Canadiens,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1959–60?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1960–61?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Chicago Black Hawks","Who won the Stanley Cup in 1961–62?,Chicago Black Hawks,Montreal Canadiens,New York Rangers,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1962–63?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1963–64?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1964–65?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1965–66?,Chicago Black Hawks,Detroit Red Wings,Montreal Canadiens,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1966–67?,Chicago Black Hawks,Montreal Canadiens,New York Rangers,Toronto Maple Leafs,Toronto Maple Leafs","Who won the Stanley Cup in 1967–68?,Chicago Black Hawks,Minnesota North Stars,Montreal Canadiens,St. Louis Blues,Montreal Canadiens","Who won the Stanley Cup in 1968–69?,Boston Bruins,Los Angeles Kings,Montreal Canadiens,St. Louis Blues,Montreal Canadiens","Who won the Stanley Cup in 1969–70?,Boston Bruins,Chicago Black Hawks,Pittsburgh Penguins,St. Louis Blues,Boston Bruins","Who won the Stanley Cup in 1970–71?,Chicago Black Hawks,Minnesota North Stars,Montreal Canadiens,New York Rangers,Montreal Canadiens","Who won the Stanley Cup in 1971–72?,Boston Bruins,Chicago Black Hawks,New York Rangers,St. Louis Blues,Boston Bruins","Who won the Stanley Cup in 1972–73?,Chicago Black Hawks,Montreal Canadiens,New York Rangers,Philadelphia Flyers,Montreal Canadiens","Who won the Stanley Cup in 1973–74?,Boston Bruins,Chicago Black Hawks,New York Rangers,Philadelphia Flyers,Philadelphia Flyers","Who won the Stanley Cup in 1974–75?,Buffalo Sabres,Montreal Canadiens,New York Islanders,Philadelphia Flyers,Philadelphia Flyers","Who won the Stanley Cup in 1975–76?,Boston Bruins,Montreal Canadiens,New York Islanders,Philadelphia Flyers,Montreal Canadiens","Who won the Stanley Cup in 1976–77?,Boston Bruins,Montreal Canadiens,New York Islanders,Philadelphia Flyers,Montreal Canadiens","Who won the Stanley Cup in 1977–78?,Boston Bruins,Montreal Canadiens,Philadelphia Flyers,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1978–79?,Boston Bruins,Montreal Canadiens,New York Islanders,New York Rangers,Montreal Canadiens","Who won the Stanley Cup in 1979–80?,Buffalo Sabres,Minnesota North Stars,Philadelphia Flyers,New York Islanders,New York Islanders","Who won the Stanley Cup in 1980–81?,Calgary Flames,Minnesota North Stars,New York Islanders,New York Rangers,New York Islanders","Who won the Stanley Cup in 1981–82?,Chicago Black Hawks,New York Islanders,Quebec Nordiques,Vancouver Canucks,New York Islanders","Who won the Stanley Cup in 1982–83?,Boston Bruins,Chicago Black Hawks,Edmonton Oilers,New York Islanders,New York Islanders","Who won the Stanley Cup in 1983–84?,Edmonton Oilers,Montreal Canadiens,Minnesota North Stars,New York Islanders,Edmonton Oilers","Who won the Stanley Cup in 1984–85?,Chicago Black Hawks,Edmonton Oilers,Philadelphia Flyers,Quebec Nordiques,Edmonton Oilers","Who won the Stanley Cup in 1985–86?,Calgary Flames,Montreal Canadiens,New York Rangers,St. Louis Blues,Montreal Canadiens","Who won the Stanley Cup in 1986–87?,Detroit Red Wings,Edmonton Oilers,Montreal Canadiens,Philadelphia Flyers,Edmonton Oilers","Who won the Stanley Cup in 1987–88?,Boston Bruins,Detroit Red Wings,Edmonton Oilers,New Jersey Devils,Edmonton Oilers","Who won the Stanley Cup in 1988–89?,Calgary Flames,Chicago Blackhawks,Montreal Canadiens,Philadelphia Flyers,Calgary Flames","Who won the Stanley Cup in 1989–90?,Boston Bruins,Chicago Blackhawks,Edmonton Oilers,Washington Capitals,Edmonton Oilers","Who won the Stanley Cup in 1990–91?,Boston Bruins,Edmonton Oilers,Minnesota North Stars,Pittsburgh Penguins,Pittsburgh Penguins","Who won the Stanley Cup in 1991–92?,Boston Bruins,Chicago Blackhawks,Edmonton Oilers,Pittsburgh Penguins,Pittsburgh Penguins","Who won the Stanley Cup in 1992–93?,Los Angeles Kings,Montreal Canadiens,New York Islanders,Toronto Maple Leafs,Montreal Canadiens","Who won the Stanley Cup in 1993–94?,New Jersey Devils,New York Rangers,Toronto Maple Leafs,Vancouver Canucks,New York Rangers","Who won the Stanley Cup in 1994–95?,Chicago Blackhawks,Detroit Red Wings,New Jersey Devils,Philadelphia Flyers,New Jersey Devils","Who won the Stanley Cup in 1995–96?,Colorado Avalanche,Detroit Red Wings,Florida Panthers,Pittsburgh Penguins,Colorado Avalanche","Who won the Stanley Cup in 1996–97?,Colorado Avalanche,Detroit Red Wings,New York Rangers,Philadelphia Flyers,Detroit Red Wings","Who won the Stanley Cup in 1997–98?,Buffalo Sabres,Dallas Stars,Detroit Red Wings,Washington Capitals,Detroit Red Wings","Who won the Stanley Cup in 1998–99?,Buffalo Sabres,Colorado Avalanche,Dallas Stars,Toronto Maple Leafs,Dallas Stars","Who won the Stanley Cup in 1999–2000?,Colorado Avalanche,Dallas Stars,New Jersey Devils,Philadelphia Flyers,New Jersey Devils","Who won the Stanley Cup in 2000–01?,Colorado Avalanche,New Jersey Devils,Pittsburgh Penguins,St. Louis Blues,Colorado Avalanche","Who won the Stanley Cup in 2001–02?,Carolina Hurricanes,Colorado Avalanche,Detroit Red Wings,Toronto Maple Leafs,Detroit Red Wings","Who won the Stanley Cup in 2002–03?,Anaheim Mighty Ducks,Minnesota Wild,New Jersey Devils,Ottawa Senators,New Jersey Devils","Who won the Stanley Cup in 2003–04?,Calgary Flames,Philadelphia Flyers,San Jose Sharks,Tampa Bay Lightning,Tampa Bay Lightning","Who won the Stanley Cup in 2004–05?,Carolina Hurricanes,Everyone,No One,Tampa Bay Lightning,No One","Who won the Stanley Cup in 2005–06?,Anaheim Ducks,Buffalo Sabres,Carolina Hurricanes,Edmonton Oilers,Carolina Hurricanes","Who won the Stanley Cup in 2006–07?,Anaheim Ducks,Buffalo Sabres,Detroit Red Wings,Ottawa Senators,Anaheim Ducks","Who won the Stanley Cup in 2007–08?,Dallas Stars,Detroit Red Wings,Philadelphia Flyers,Pittsburgh Penguins,Detroit Red Wings","Who won the Stanley Cup in 2008–09?,Carolina Hurricanes,Chicago Blackhawks,Detroit Red Wings,Pittsburgh Penguins,Pittsburgh Penguins","Who won the Stanley Cup in 2009–10?,Chicago Blackhawks,Montreal Canadiens,Philadelphia Flyers,San Jose Sharks,Chicago Blackhawks","Who won the Stanley Cup in 2010–11?,Boston Bruins,San Jose Sharks,Tampa Bay Lightning,Vancouver Canucks,Boston Bruins","Who won the Stanley Cup in 2011–12?,Los Angeles Kings,New Jersey Devils,New York Rangers,Phoenix Coyotes,Los Angeles Kings","Who won the Stanley Cup in 2012–13?,Boston Bruins,Chicago Blackhawks,Los Angeles Kings,Pittsburgh Penguins,Chicago Blackhawks","Who won the Stanley Cup in 2013–14?,Chicago Blackhawks,Los Angeles Kings,Montreal Canadiens,New York Rangers,Los Angeles Kings","Who won the Stanley Cup in 2014–15?,Anaheim Ducks,Chicago Blackhawks,New York Rangers,Tampa Bay Lightning,Chicago Blackhawks","Who won the Stanley Cup in 2015–16?,Pittsburgh Penguins,San Jose Sharks,St. Louis Blues,Tampa Bay Lightning,Pittsburgh Penguins","Who won the Stanley Cup in 2016–17?,Anaheim Ducks,Nashville Predators,Ottawa Senators,Pittsburgh Penguins,Pittsburgh Penguins","Who won the Stanley Cup in 2017–18?,Tampa Bay Lightning,Vegas Golden Knights,Washington Capitals,Winnipeg Jets,Washington Capitals","Who won the Stanley Cup in 2018–19?,Boston Bruins,Carolina Hurricanes,San Jose Sharks,St. Louis Blues,St. Louis Blues","Who won the Stanley Cup in 2019–20?,Dallas Stars,New York Islanders,Tampa Bay Lightning,Vegas Golden Knights,Tampa Bay Lightning","Who won the Stanley Cup in 2020–21?,Montreal Canadiens,New York Islanders,Tampa Bay Lightning,Vegas Golden Knights,Tampa Bay Lightning","Who won the Stanley Cup in 2021–22?,Colorado Avalanche,Edmonton Oilers,New York Rangers,Tampa Bay Lightning,Colorado Avalanche","Who won the Stanley Cup in 2022–23?,Carolina Hurricanes,Dallas Stars,Florida Panthers,Vegas Golden Knights,Vegas Golden Knights", "Who won the Stanley Cup in 2023–24?,Dallas Stars, Edmonton Oilers,Florida Panthers,New York Rangers,Florida Panthers","Who won the Stanley Cup in 2024–25?,Carolina Hurricanes, Dallas Stars, Edmonton Oilers,Florida Panthers",
+];
+
+
+    function shuffleQuestions() {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+    }
+
+    function displayCurrentQuestion() {
+      const currentQuestionString = questions[currentQuestionIndex];
+      const parts = currentQuestionString.split(",");
+      const questionText = parts[0];
+      const optionsList = parts.slice(1, -1);
+
+      questionLabel.textContent = questionText;
+      optionsContainer.innerHTML = '';
+
+      optionsList.forEach((option, index) => {
+        const optionElement = document.createElement('button');
+        optionElement.type = 'button';
+        optionElement.classList.add('option');
+        optionElement.textContent = option;
+        optionElement.addEventListener('click', () => handleOptionSelection(option));
+
+        optionsContainer.appendChild(optionElement);
+      });
+
+      remainingTime = 30;
+      timerLabel.textContent = `Time: ${remainingTime}`;
+      submitButtonPressed = false;
+    }
+
+    function handleOptionSelection(option) {
+      // Check if the option is already selected
+      if (selectedOption === option) {
+        // Deselect the option if clicked again
+        selectedOption = null;
+
+        // Enable all options
+        document.querySelectorAll('.option').forEach((element) => {
+          element.disabled = false;
+        });
+      } else {
+        // Select the clicked option
+        selectedOption = option;
+
+        // Disable other options
+        document.querySelectorAll('.option').forEach((element) => {
+          if (element.textContent !== option) {
+            element.disabled = true;
+          }
+        });
+      }
+    }
+
+    function handleAnswerSubmission() {
+      if (selectedOption && !submitButtonPressed) {
+        submitButtonPressed = true; // Set submitButtonPressed to true
+        checkAnswer(selectedOption);
+        moveToNextQuestion();
+      }
+    }
+
+    function checkAnswer(selectedOptionText) {
+      const parts = questions[currentQuestionIndex].split(",");
+      const correctAnswer = parts[parts.length - 1];
+
+      if (selectedOptionText === correctAnswer) {
+        score += 1;
+        questionsCorrect++;
+      } else {
+        score -= 1; // Adjust for penalty
+        questionsMissed++;
+      }
+    }
+
+    function moveToNextQuestion() {
+      clearInterval(timer); // Clear the existing timer
+
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        displayCurrentQuestion();
+        startTimer(); // Start a new timer for the new question
+      } else {
+        endGame();
+      }
+      updateStatsLabel();
+    }
+    function updateStatsLabel() {
+      statsLabel.textContent = `Score: ${score} Right: ${questionsCorrect} Wrong: ${questionsMissed} Expired: ${questionsTimedOut} Time Spent: ${totalTimePlayed} sec.`;
+    }
+
+    function startTotalTimeTimer() {
+      totalTimer = setInterval(() => {
+        totalTimePlayed++;
+        updateStatsLabel();
+      }, 1000);
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime >= 0) {
+          timerLabel.textContent = `Time: ${remainingTime}`;
+        } else {
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      questionsTimedOut++;
+      score -= 1; // Adjust for penalty
+      moveToNextQuestion();
+    }
+    function endGame() {
+      // Clear the timers
+      clearInterval(timer);
+      clearInterval(totalTimer);
+
+
+
+      if (scoreDisplay) {
+        if (currentQuestionIndex > 0 && remainingTime >= 0 && totalTimePlayed > 0) {
+          scoreDisplay.innerHTML = `Your total score is ${score}. Refresh the page to start over.`;
+        } else {
+          scoreDisplay.innerHTML = 'Game Over. Refresh the page to start a new game.';
+        }
+      } else {
+        console.log('Error: score-display element not found.');
+      }
+    }
+
+
+
+
+    // Add event listeners
+    submitButton.addEventListener('click', handleAnswerSubmission);
+
+    // Initialize the game       
+    shuffleQuestions();
+    displayCurrentQuestion();
+    startTimer();
+    startTotalTimeTimer();
+
+  </script>
+</body>
+
+</html>
