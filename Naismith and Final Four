@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .quiz-container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #F44336;
+      margin-bottom: 20px;
+    }
+
+    .question {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: blue;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+
+    /* ... (your existing styles) ... */
+
+    .option {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      /* Add some margin between buttons */
+      transition: background-color 0.3s ease;
+    }
+
+    .option:hover {
+      background-color: #45a049;
+    }
+
+    .option:disabled {
+      background-color: #ddd;
+      color: #2196F3;
+      cursor: not-allowed;
+    }
+
+
+    .stats-panel {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #stats-label {
+      color: black;
+    }
+
+    #timer-label {
+      font-weight: bold;
+    }
+
+    #submit-button {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #submit-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-container">
+    <h1>CBB Trivia</h1>
+    <div class="question" id="question-label"></div>
+    <div id="options-container" class="options"></div>
+    <div id="score-display"></div>
+    <div class="stats-panel">
+      <span id="timer-label">Time: 30</span>
+      <span id="stats-label">Score: 0 Right: 0 Wrong: 0 Expired: 0 Time Spent: 0 sec.</span>
+      <button id="submit-button">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    let currentQuestionIndex = 0;
+    let remainingTime = 30;
+    let score = 0;
+    let questionsCorrect = 0;
+    let questionsMissed = 0;
+    let questionsTimedOut = 0;
+    let totalTimePlayed = 0;
+    let selectedOption = null; // Variable to track the selected option
+    let submitButtonPressed = false;
+    let timer;
+    let totalTimer;
+    let scoreDisplay = document.getElementById('score-display');
+
+    // Your HTML elements
+    const questionLabel = document.getElementById('question-label');
+    const optionsContainer = document.getElementById('options-container');
+    const timerLabel = document.getElementById('timer-label');
+    const statsLabel = document.getElementById('stats-label');
+    const submitButton = document.getElementById('submit-button');
+    const questions = [
+        "Who won the Naismith CBB POY Award in 2025?,Braden Smith,Cooper Flagg,Johni Broomie,Walter Clayton Jr.,Cooper Flagg",
+      "Who won the Naismith CBB POY Award in 2024?,Dalron Knecht,Jamal Shead,RJ Davis,Zach Edey,Zach Edey",
+      "Who won the Naismith CBB POY Award in 2023?,Drew Timme,Jalen Wilson,Oscar Tshiebwe,Zach Edey,Zach Edey",
+      "Who won the Naismith CBB POY Award in 2022?,Chet Homgren,Keegan Murray,Oscar Tshiebwe,Zach Edey,Oscar Tshiebwe",
+      "Who won the Naismith CBB POY Award in 2021?,Ayo Dosunmu,Cade Cunningham,Luka Garza,Oscar Tshiebwe,Luka Garza",
+      "Who won the Naismith CBB POY Award in 2020?,Luka Garza,Obi Toppin,Payton Pritchard,Udoka Azubuike,Obi Toppin",
+      "Who won the Naismith CBB POY Award in 2019?,Ja Morant,Obi Toppin,Rui Hachimura,Zion Williamson,Zion Williamson",
+      "Who won the Naismith CBB POY Award in 2018?,Deandre Ayton,Devonte' Graham,Jalen Brunson,Marvin Bagley III,Jalen Brunson",
+      "Who won the Naismith CBB POY Award in 2017?,Caleb Swanigan,Frank Mason III,Jalen Brunson,Lonzo Ball,Frank Mason III",
+      "Who won the Naismith CBB POY Award in 2016?,Buddy Hield,Frank Mason III,Malcolm Brogdon,Tyler Ulis,Buddy Hield",
+      "Who won the Naismith CBB POY Award in 2015?,D'Angelo Russell,Frank Kaminsky,Jahlil Okafor,Willie Cauley-Stein,Frank Kaminsky",
+      "Who won the Naismith CBB POY Award in 2014?,Doug McDermott,Frank Kaminsky,Jabari Parker,Nick Johnson,Doug McDermott",
+      "Who won the Naismith CBB POY Award in 2013?,Doug McDermott,Otto Porter Jr.,Trey Burke,Victor Oladipo,Trey Burke",
+      "Who won the Naismith CBB POY Award in 2012?,Anthony Davis,Doug McDermott,Draymond Green,Thomas Robinson,Anthony Davis",
+      "Who won the Naismith CBB POY Award in 2011?,Jared Sullinger,Jimmer Fredette,Kemba Walker,Nolan Smith,Jimmer Fredette",
+      "Who won the Naismith CBB POY Award in 2010?,Evan Turner,Jimmer Fredette,John Wall,Sherron Collins,Evan Turner",
+      "Who won the Naismith CBB POY Award in 2009?,Blake Griffin,DeJuan Blair,Hasheem Thabeet,Tyler Hansbrough,Blake Griffin",
+      "Who won the Naismith CBB POY Award in 2008?,Blake Griffin,Kevin Love,Michael Beasley,Tyler Hansbrough,Tyler Hansbrough",
+      "Who won the Naismith CBB POY Award in 2007?,Al Horford,Kevin Durant,Stephen Curry,Tyler Hansbrough,Kevin Durant",
+      "Who won the Naismith CBB POY Award in 2006?,Adam Morrison,J.J. Redick,Paul Millsap,Rudy Gay,J.J. Redick",
+      "Who won the Naismith CBB POY Award in 2005?,Andrew Bogut,Chris Paul,J.J. Redick,Paul Millsap,Andrew Bogut",
+      "Who won the Naismith CBB POY Award in 2004?,Emeka Okafor,Jameer Nelson,J.J. Redick,Paul Millsap,Jameer Nelson",
+      "Who won the Naismith CBB POY Award in 2003?,David West,Dwyane Wade,Kyle Korver,T.J. Ford,T.J. Ford",
+      "Who won the Naismith CBB POY Award in 2002?,Carlos Boozer,Caron Butler,David West,Jay Williams,Jay Williams",
+      "Who won the Naismith CBB POY Award in 2001?,David West,Jameer Nelson,Jay Williams,Shane Battier,Shane Battier",
+      "Who won the Naismith CBB POY Award in 2000?,Jay Williams,Kenyon Martin,Samuel Dalembert,Troy Murphy,Kenyon Martin",
+      "Who won the Naismith CBB POY Award in 1999?,Elton Brand,Michael Redd,Richard Hamilton,Wally Szczerbiak,Elton Brand",
+      "Who won the Naismith CBB POY Award in 1998?,Antawn Jamison,Michael Olowokandi,Paul Pierce,Richard Hamilton,Antawn Jamison",
+      "Who won the Naismith CBB POY Award in 1997?,Antawn Jamison,Keith Van Horn,Raef LaFrentz,Tim Duncan,Tim Duncan",
+      "Who won the Naismith CBB POY Award in 1996?,Allen Iverson,Marcus Camby,Ray Allen,Tim Duncan,Marcus Camby",
+      "Who won the Naismith CBB POY Award in 1995?,Gary Trent,Joe Smith,Kurt Thomas,Tim Duncan,Joe Smith",
+      "Who won the Naismith CBB POY Award in 1994?,Gary Trent,Glenn Robinson,Jason Kidd,Tim Duncan,Glenn Robinson",
+      "Who won the Naismith CBB POY Award in 1993?,Bobby Hurley,Calbert Cheaney,Isaiah Rider,Jason Kidd,Calbert Cheaney",
+      "Who won the Naismith CBB POY Award in 1992?,Alonzo Mourning ,Christian Laettner,Jamal Mashburn,Shaquille O'Neal ,Christian Laettner",
+      "Who won the Naismith CBB POY Award in 1991?,Christian Laettner,Dikembe Mutombo,Larry Johnson,Shaquille O'Neal ,Larry Johnson",
+      "Who won the Naismith CBB POY Award in 1990?,Bo Kimble,Derrick Coleman,Laphonso Ellis,Lionel Simmons,Lionel Simmons",
+      "Who won the Naismith CBB POY Award in 1989?,Alonzo Mourning ,Danny Ferry,Hank Gathers,Mahmoud Abdul-Rauf,Danny Ferry",
+      "Who won the Naismith CBB POY Award in 1988?,Avery Johnson,Danny Manning,Derrick Coleman,Hershey Hawkins,Danny Manning",
+      "Who won the Naismith CBB POY Award in 1987?,Danny Manning,David Robinson,Derrick Coleman,Hershey Hawkins,David Robinson",
+      "Who won the Naismith CBB POY Award in 1986?,Danny Ferry,David Robinson,Johnny Dawkins,Reggie Miller,Johnny Dawkins",
+      "Who won the Naismith CBB POY Award in 1985?,Brad Daughtery,David Robinson,Len Bias,Patrick Ewing,Patrick Ewing",
+      "Who won the Naismith CBB POY Award in 1984?,Hakeem Olajuwon ,Joe Dumars,Michael Jordan,Patrick Ewing,Michael Jordan",
+      "Who won the Naismith CBB POY Award in 1983?,Clyde Drexler,Hakeem Olajuwon ,Ralph Sampson,Wayman Tisdale,Ralph Sampson",
+      "Who won the Naismith CBB POY Award in 1982?,Clyde Drexler,Dominque Wilkins,Patrick Ewing,Ralph Sampson,Ralph Sampson",
+      "Who won the Naismith CBB POY Award in 1981?,Clark Kellogg,Danny Ainge,Dominque Wilkins,Ralph Sampson,Ralph Sampson",
+      "Who won the Naismith CBB POY Award in 1980?,Darrell Griffith,Joe Barry Carroll,Mark Aguirre,Ralph Sampson,Mark Aguirre",
+      "Who won the Naismith CBB POY Award in 1979?,Joe Barry Carroll,Larry Bird,Magic Johnson,Sidney Moncrief,Larry Bird",
+      "Who won the Naismith CBB POY Award in 1978?,Butch Lee,Larry Bird,Magic Johnson,Sidney Moncrief,Butch Lee",
+      "Who won the Naismith CBB POY Award in 1977?,Larry Bird,Marques Johnson,Otis Birdsong,Sidney Moncrief,Marques Johnson",
+      "Who won the Naismith CBB POY Award in 1976?,Adrian Dantley,Mychal Thompson,Robert Parish,Scott May,Scott May",
+      "Who won the Naismith CBB POY Award in 1975?,Adrian Dantley,Alvan Adams,David Thompson,Robert Parish,David Thompson",
+      "Who won the Naismith CBB POY Award in 1974?,Bill Walton,David Thompson,Marvin Barnes,Robert Parish,Bill Walton",
+      "Who won the Naismith CBB POY Award in 1973?,Bill Walton,Bo Lamar,Doug Collins,Kermit Washington,Bill Walton",
+      "Who won the Naismith CBB POY Award in 1972?,Bill Walton,Bo Lamar,Doug Collins,Kermit Washington,Bill Walton",
+      "Who won the Naismith CBB POY Award in 1971?,Artis Gilmore,Austin Carr,George McGinnis,Julius Erving,Austin Carr",
+      "Who won the Naismith CBB POY Award in 1970?,Artis Gilmore,Dan Issel,Julius Erving,Pete Maravich,Pete Maravich",
+      "Who won the Naismith CBB POY Award in 1969?,Dan Issel,Kareem Abdul-Jabbar,Pete Maravich,Spencer Haywood,Kareem Abdul-Jabbar",
+      "Who won the NCAACBB Tournament in 1939?,Ohio State,Oklahoma,Oregon,Villanova,Oregon",
+      "Who won the NCAACBB Tournament in 1940?,Duquesne,Indiana,Kansas,USC,Indiana",
+      "Who won the NCAACBB Tournament in 1941?,Arkansas,Pittsburgh,Washington State,Wisconsin,Wisconsin",
+      "Who won the NCAACBB Tournament in 1942?,Colorado,Dartmouth,Kentucky,Stanford,Stanford",
+      "Who won the NCAACBB Tournament in 1943?,DePaul,Georgetown,Texas,Wyoming,Wyoming",
+      "Who won the NCAACBB Tournament in 1944?,Dartmouth,Iowa State,Ohio State,Utah,Utah",
+      "Who won the NCAACBB Tournament in 1945?,Arkansas,New York University,Ohio State,Oklahoma A&M,Oklahoma A&M",
+      "Who won the NCAACBB Tournament in 1946?,California,North Carolina,Ohio State,Oklahoma A&M,Oklahoma A&M",
+      "Who won the NCAACBB Tournament in 1947?,City College of New York,Holy Cross,Oklahoma,Tezas,Holy Cross",
+      "Who won the NCAACBB Tournament in 1948?,Baylor,Holy Cross,Kansas State,Kentucky,Kentucky",
+      "Who won the NCAACBB Tournament in 1949?,Illinois,Kentucky,Oklahoma A&M,Oregon State,Kentucky",
+      "Who won the NCAACBB Tournament in 1950?,Baylor,Bradley,City College of New York,North Carolina State,City College of New York",
+      "Who won the NCAACBB Tournament in 1951?,Illinois,Kansas State,Kentucky,Oklahoma A&M,Kentucky",
+      "Who won the NCAACBB Tournament in 1952?,Illinois,Kansas,Saint John's,Santa Clara,Kansas",
+      "Who won the NCAACBB Tournament in 1953?,Indiana,Kansas,LSU,Washington,Indiana",
+      "Who won the NCAACBB Tournament in 1954?,Bradley,La Salle,Penn State,USC,La Salle",
+      "Who won the NCAACBB Tournament in 1955?,Colorado,Iowa,La Salle,San Francisco,San Francisco",
+      "Who won the NCAACBB Tournament in 1956?,Iowa,San Francisco,SMU,Temple,San Francisco",
+      "Who won the NCAACBB Tournament in 1957?,Kansas,North Carolina,Michigan State,San Francisco,North Carolina",
+      "Who won the NCAACBB Tournament in 1958?,Kansas State,Kentucky,Seattle,Temple,Kentucky",
+      "Who won the NCAACBB Tournament in 1959?,California,Cincinnati,Temple,West Virginia,California",
+      "Who won the NCAACBB Tournament in 1960?,California,Cincinnati,New York University,Ohio State,Ohio State",
+      "Who won the NCAACBB Tournament in 1961?,Cincinnati,Ohio State,Saint Joseph's,Utah,Cincinnati",
+      "Who won the NCAACBB Tournament in 1962?,Cincinnati,Ohio State,UCLA,Wake Forest,Cincinnati",
+      "Who won the NCAACBB Tournament in 1963?,Cincinnati,Duke,Loyola Chicago,Oregon State,Loyola Chicago",
+      "Who won the NCAACBB Tournament in 1964?,Duke,Kansas State,Michigan,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1965?,Michigan,Princeton,UCLA,Wichita State,UCLA",
+      "Who won the NCAACBB Tournament in 1966?,Duke,Kentucky,Texas Western,Utah,Texas Western",
+      "Who won the NCAACBB Tournament in 1967?,Dayton,Houston,North Carolina,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1968?,Houston,North Carolina,Ohio State,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1969?,Drake,North Carolina,Purdue,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1970?,Jacksonville,New Mexico State,Saint Bonaventure,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1971?,Kansas,UCLA,Villanova,Western Kentucky,UCLA",
+      "Who won the NCAACBB Tournament in 1972?,Florirda State,Louisville,North Carolina,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1973?,Indiana,Memphis State,Providence,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1974?,Kansas,Marquette,North Carolina State,UCLA,North Carolina State",
+      "Who won the NCAACBB Tournament in 1975?,Kentucky,Louisville,Syracuse,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1976?,Indiana,Michigan,Rutgers,UCLA,Indiana",
+      "Who won the NCAACBB Tournament in 1977?,Charlotte,Marquette,North Carolina,UNLV,Marquette",
+      "Who won the NCAACBB Tournament in 1978?,Arkansas,Duke,Kentucky,Notre Dame,Kentucky",
+      "Who won the NCAACBB Tournament in 1979?,DePaul,Indiana State,Michigan State,Pennsylvania,Michigan State",
+      "Who won the NCAACBB Tournament in 1980?,Iowa,Louisville,Purdue,UCLA,Louisville",
+      "Who won the NCAACBB Tournament in 1981?,Indiana,LSU,North Carolina,Virginia,Indiana",
+      "Who won the NCAACBB Tournament in 1982?,Georgetown,Houston,Louisville,North Carolina,North Carolina",
+      "Who won the NCAACBB Tournament in 1983?,Georgia,Houston,Louisville,North Carolina State,North Carolina State",
+      "Who won the NCAACBB Tournament in 1984?,Houston,Georgetown,Kentucky,Virginia,Georgetown",
+      "Who won the NCAACBB Tournament in 1985?,Georgetown,Memphis State,Saint John's,Villanova,Villanova",
+      "Who won the NCAACBB Tournament in 1986?,Duke,Kansas,Louisville,LSU,Louisville",
+      "Who won the NCAACBB Tournament in 1987?,Indiana,Providence,Syracuse,UNLV,Indiana",
+      "Who won the NCAACBB Tournament in 1988?,Arizona,Duke,Kansas,Oklahoma,Kansas",
+      "Who won the NCAACBB Tournament in 1989?,Duke,Illinois,Michigan,Seton Hall,Michigan",
+      "Who won the NCAACBB Tournament in 1990?,Arkansas,Duke,Georgia Tech,UNLV,UNLV",
+      "Who won the NCAACBB Tournament in 1991?,Duke,Kansas,North Carolina,UNLV,Duke",
+      "Who won the NCAACBB Tournament in 1992?,Cincinnati,Indiana,Duke,Michigan,Duke",
+      "Who won the NCAACBB Tournament in 1993?,Kansas,Kentucky,Michgian,North Carolina,North Carolina",
+      "Who won the NCAACBB Tournament in 1994?,Arizona,Arkansas,Duke,Florida,Arkansas",
+      "Who won the NCAACBB Tournament in 1995?,Arkansas,North Carolina,Oklahoma State,UCLA,UCLA",
+      "Who won the NCAACBB Tournament in 1996?,Kentucky,Massachusetts,Mississippi State,Syracuse,Kentucky",
+      "Who won the NCAACBB Tournament in 1997?,Arizona,Kentucky,Minnesota,North Carolina,Arizona",
+      "Who won the NCAACBB Tournament in 1998?,Kentucky,North Carolina,Stanford,UtaH,Kentucky",
+      "Who won the NCAACBB Tournament in 1999?,Connecticut,Duke,Michigan State,Ohio State,Connecticut",
+      "Who won the NCAACBB Tournament in 2000?,Florida,Michigan State,North Carolina,Wisconsin,Michigan State",
+      "Who won the NCAACBB Tournament in 2001?,Arizona,Duke,Maryland,Michigan,Duke",
+      "Who won the NCAACBB Tournament in 2002?,Indiana,Kansas,Maryland,Oklahoma,Maryland",
+      "Who won the NCAACBB Tournament in 2003?,Kansas,Marquette,Syracuse,Texas,Syracuse",
+      "Who won the NCAACBB Tournament in 2004?,Connecticut,Duke,Georgia Tech,Oklahoma State,Connecticut",
+      "Who won the NCAACBB Tournament in 2005?,Illinois,Louisville,North Carolina,Michigan State,North Carolina",
+      "Who won the NCAACBB Tournament in 2006?,Florida,George Mason,LSU,UCLA,Florida",
+      "Who won the NCAACBB Tournament in 2007?,Florida,Georgetown,Ohio State,UCLA,Florida",
+      "Who won the NCAACBB Tournament in 2008?,Kansas,Memphis,North Carolina,UCLA,Kansas",
+      "Who won the NCAACBB Tournament in 2009?,Connecticut,Michigan State,North Carolina,Villanova,North Carolina",
+      "Who won the NCAACBB Tournament in 2010?,Butler,Duke,Michigan State,West Virginia,Duke",
+      "Who won the NCAACBB Tournament in 2011?,Butler,Connecticut,Kentucky,Virginia Commonwealth,Connecticut",
+      "Who won the NCAACBB Tournament in 2012?,Kansas,Kentucky,Ohio State,Louisville,Kentucky",
+      "Who won the NCAACBB Tournament in 2013?,Louisville,Michigan,Syracuse,Wichita State,Louisville",
+      "Who won the NCAACBB Tournament in 2014?,Connecticut,Florida,Kentucky,Wisconsin,Connecticut",
+      "Who won the NCAACBB Tournament in 2015?,Duke,Kentucky,Michigan State,Wisconsin,Duke",
+      "Who won the NCAACBB Tournament in 2016?,North Carolina,Oklahoma,Syracuse,Villanova,Villanova",
+      "Who won the NCAACBB Tournament in 2017?,Gonzaga,North Carolina,Oregon,South Carolina,North Carolina",
+      "Who won the NCAACBB Tournament in 2018?,Kansas,Loyola Chicago,Michigan,Villanova,Villanova",
+      "Who won the NCAACBB Tournament in 2019?,Auburn,Michigan State,Texas Tech,Virginia,Virginia",
+      "Who won the NCAACBB Tournament in 2020?,Baylor,Kansas,No One,Virginia,No One",
+      "Who won the NCAACBB Tournament in 2021?,Baylor,Gonzaga,Houston,UCLA,Baylor",
+      "Who won the NCAACBB Tournament in 2022?,Duke,Kansas,North Carolina,Villanova,Kansas",
+      "Who won the NCAACBB Tournament in 2023?,Connecticut,Florida Atlantic,Miami FL,San Diego State,Connecticut",
+      "Who won the NCAACBB Tournament in 2024?,Albama,Connecticut,North Carolina State,Purdue,Connecticut",
+      "Who won the NCAACBB Tournament in 2025?,Auburn,Duke,Florida,Houston,Florida",
+
+    ];
+
+
+    function shuffleQuestions() {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+    }
+
+    function displayCurrentQuestion() {
+      const currentQuestionString = questions[currentQuestionIndex];
+      const parts = currentQuestionString.split(",");
+      const questionText = parts[0];
+      const optionsList = parts.slice(1, -1);
+
+      questionLabel.textContent = questionText;
+      optionsContainer.innerHTML = '';
+
+      optionsList.forEach((option, index) => {
+        const optionElement = document.createElement('button');
+        optionElement.type = 'button';
+        optionElement.classList.add('option');
+        optionElement.textContent = option;
+        optionElement.addEventListener('click', () => handleOptionSelection(option));
+
+        optionsContainer.appendChild(optionElement);
+      });
+
+      remainingTime = 30;
+      timerLabel.textContent = `Time: ${remainingTime}`;
+      submitButtonPressed = false;
+    }
+
+    function handleOptionSelection(option) {
+      // Check if the option is already selected
+      if (selectedOption === option) {
+        // Deselect the option if clicked again
+        selectedOption = null;
+
+        // Enable all options
+        document.querySelectorAll('.option').forEach((element) => {
+          element.disabled = false;
+        });
+      } else {
+        // Select the clicked option
+        selectedOption = option;
+
+        // Disable other options
+        document.querySelectorAll('.option').forEach((element) => {
+          if (element.textContent !== option) {
+            element.disabled = true;
+          }
+        });
+      }
+    }
+
+    function handleAnswerSubmission() {
+      if (selectedOption && !submitButtonPressed) {
+        submitButtonPressed = true; // Set submitButtonPressed to true
+        checkAnswer(selectedOption);
+        moveToNextQuestion();
+      }
+    }
+
+    function checkAnswer(selectedOptionText) {
+      const parts = questions[currentQuestionIndex].split(",");
+      const correctAnswer = parts[parts.length - 1];
+
+      if (selectedOptionText === correctAnswer) {
+        score += 1;
+        questionsCorrect++;
+      } else {
+        score -= 1; // Adjust for penalty
+        questionsMissed++;
+      }
+    }
+
+    function moveToNextQuestion() {
+      clearInterval(timer); // Clear the existing timer
+
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        displayCurrentQuestion();
+        startTimer(); // Start a new timer for the new question
+      } else {
+        endGame();
+      }
+      updateStatsLabel();
+    }
+    function updateStatsLabel() {
+      statsLabel.textContent = `Score: ${score} Right: ${questionsCorrect} Wrong: ${questionsMissed} Expired: ${questionsTimedOut} Time Spent: ${totalTimePlayed} sec.`;
+    }
+
+    function startTotalTimeTimer() {
+      totalTimer = setInterval(() => {
+        totalTimePlayed++;
+        updateStatsLabel();
+      }, 1000);
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime >= 0) {
+          timerLabel.textContent = `Time: ${remainingTime}`;
+        } else {
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      questionsTimedOut++;
+      score -= 1; // Adjust for penalty
+      moveToNextQuestion();
+    }
+    function endGame() {
+      // Clear the timers
+      clearInterval(timer);
+      clearInterval(totalTimer);
+
+
+
+      if (scoreDisplay) {
+        if (currentQuestionIndex > 0 && remainingTime >= 0 && totalTimePlayed > 0) {
+          scoreDisplay.innerHTML = `Your total score is ${score}. Refresh the page to start over.`;
+        } else {
+          scoreDisplay.innerHTML = 'Game Over. Refresh the page to start a new game.';
+        }
+      } else {
+        console.log('Error: score-display element not found.');
+      }
+    }
+
+
+
+
+    // Add event listeners
+    submitButton.addEventListener('click', handleAnswerSubmission);
+
+    // Initialize the game      
+    shuffleQuestions();
+    displayCurrentQuestion();
+    startTimer();
+    startTotalTimeTimer();
+
+  </script>
+</body>
+
+</html>
