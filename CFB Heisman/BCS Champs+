@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .quiz-container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #F44336;
+      margin-bottom: 20px;
+    }
+
+    .question {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: blue;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+
+    /* ... (your existing styles) ... */
+
+    .option {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      /* Add some margin between buttons */
+      transition: background-color 0.3s ease;
+    }
+
+    .option:hover {
+      background-color: #45a049;
+    }
+
+    .option:disabled {
+      background-color: #ddd;
+      color: #2196F3;
+      cursor: not-allowed;
+    }
+
+
+    .stats-panel {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #stats-label {
+      color: black;
+    }
+
+    #timer-label {
+      font-weight: bold;
+    }
+
+    #submit-button {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #submit-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-container">
+    <h1>Heisman and Championship Trivia</h1>
+    <div class="question" id="question-label"></div>
+    <div id="options-container" class="options"></div>
+    <div id="score-display"></div>
+    <div class="stats-panel">
+      <span id="timer-label">Time: 30</span>
+      <span id="stats-label">Score: 0 Right: 0 Wrong: 0 Expired: 0 Time Spent: 0 sec.</span>
+      <button id="submit-button">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    let currentQuestionIndex = 0;
+    let remainingTime = 30;
+    let score = 0;
+    let questionsCorrect = 0;
+    let questionsMissed = 0;
+    let questionsTimedOut = 0;
+    let totalTimePlayed = 0;
+    let selectedOption = null; // Variable to track the selected option
+    let submitButtonPressed = false;
+    let timer;
+    let totalTimer;
+    let scoreDisplay = document.getElementById('score-display');
+
+    // Your HTML elements
+    const questionLabel = document.getElementById('question-label');
+    const optionsContainer = document.getElementById('options-container');
+    const timerLabel = document.getElementById('timer-label');
+    const statsLabel = document.getElementById('stats-label');
+    const submitButton = document.getElementById('submit-button');
+    const questions = [
+      "Who won the Heisman Trophy in 1935?,Jay Berwanger,Monk Meyer,Pepper Constable,William Shakespeare,Jay Berwanger",
+      "Who won the Heisman Trophy in 1936?,Larry Kelley,Ray Buivid,Sammy Baugh,Sam Francis,Larry Kelley",
+      "Who won the Heisman Trophy in 1937?,Alex Wojciechowicz,Byron White,Clint Frank,Marshall Goldberg,Clint Frank",
+      "Who won the Heisman Trophy in 1938?,Bob Macleod,Davey O'Brien,Marshall Goldberg,Sid Luckman,Davey O'Brien",
+      "Who won the Heisman Trophy in 1939?,George Cafego,Nile Kinnick,Paul Christman,Tom Harmon,Nile Kinnick",
+      "Who won the Heisman Trophy in 1940?,Frankie Albert,George Franck,John Kimbrough,Tom Harmon,Tom Harmon",
+      "Who won the Heisman Trophy in 1941?,Angelo Bertelli,Bruce Smith,Frankie Albert,Frank Sinkwich,Bruce Smith",
+      "Who won the Heisman Trophy in 1942?,Clint Castleberry,Frank Sinkwich,Mike Holovak,Paul Governali,Frank Sinkwich",
+      "Who won the Heisman Trophy in 1943?,Angelo Bertelli,Bob Odell,Creighton Miller,Otto Graham,Angelo Bertelli",
+      "Who won the Heisman Trophy in 1944?,Doc Blanchard,Don Whitmore,Glenn Davis,Les Horvath,Les Horvath",
+      "Who won the Heisman Trophy in 1945?,Bob Fenimore,Doc Blanchard,Glenn Davis,Herman Wedemyer,Doc Blanchard",
+      "Who won the Heisman Trophy in 1946?,Charley Trippi,Doc Blanchard,Glenn Davis,Johnny Lujack,Glenn Davis",
+      "Who won the Heisman Trophy in 1947?,Bob Chappuis,Charlie Conerly,Doak Walker,Johnny Lujack,Johnny Lujack",
+      "Who won the Heisman Trophy in 1948?,Charlie Justice,Chuck Bednarik,Doak Walker,Jackie Jensen,Doak Walker",
+      "Who won the Heisman Trophy in 1949?,Arnold Galiffa,Charlie Justice,Doak Walker,Leon Hart,Leon Hart",
+      "Who won the Heisman Trophy in 1950?,Babe Parilli,Kyle Rote,Reds Bagnell,Vic Janowicz,Vic Janowicz",
+      "Who won the Heisman Trophy in 1951?,Babe Parilli,Bill Mccoil,Dick Kazmaier,Hank Lauricella,Dick Kazmaier",
+      "Who won the Heisman Trophy in 1952?,Billy Vessels,Donn Moomaw,Jack Scarbath,Paul Giel,Billy Vessels",
+      "Who won the Heisman Trophy in 1953?,Bernie Faloney,Johnny Lattner,Paul Cameron,Paul Giel,Johnny Lattner",
+      "Who won the Heisman Trophy in 1954?,Alan Ameche,Howard Cassady,Kurt Burns,Ralph Guglielmi,Alan Ameche",
+      "Who won the Heisman Trophy in 1955?,Earl Morrall,George Welsh,Howard Cassady,Jim Swink,Howard Cassady",
+      "Who won the Heisman Trophy in 1956?,Jerry Tubbs,Johnny Majors,Jonny Tubbs,Tommy McDonald,Paul Hornung",
+      "Who won the Heisman Trophy in 1957?,Alex Karras,John David Crow,Lou Michaels,Walt Kowalczyk,John David Crow",
+      "Who won the Heisman Trophy in 1958?,Billy Cannon,Bob White,Pete Dawkins,Randy Duncan,Pete Dawkins",
+      "Who won the Heisman Trophy in 1959?,Billy Cannon,Bill Burrell,Don Meredith,Richie Lucas,Billy Cannon",
+      "Who won the Heisman Trophy in 1960?,Ed Dyas,Jake Gibbs,Joe Bellino,Tom Brown,Joe Bellino",
+      "Who won the Heisman Trophy in 1961?,Bob Ferguson,Ernie Davis,Jimmy Saxton,Sandy Stephens,Ernie Davis",
+      "Who won the Heisman Trophy in 1962?,Bob Bell,Jerry Stovall,Lee Roy Jordan,Terry Baker,Terry Baker",
+      "Who won the Heisman Trophy in 1963?,Billy Lothridge,Don Trull,Roger Staubach,Sherman Lewis,Roger Staubach",
+      "Who won the Heisman Trophy in 1964?,Bob Timberlake,Dick Butkus,Jerry Rhome,John Huarte,John Huarte",
+      "Who won the Heisman Trophy in 1965?,Donny Anderson,Howard Tilley,Jim Grabowski,Mike Garrett,Mike Garrett",
+      "Who won the Heisman Trophy in 1966?,Bob Griese,Gary Beban,Nick Eddy,Steve Spurrier,Steve Spurrier",
+      "Who won the Heisman Trophy in 1967?,Gary Beban,Larry Csonka,Leroy Keyes,O.J. Simpson,Gary Beban",
+      "Who won the Heisman Trophy in 1968?,Leroy Keyes,O.J. Simpson,Ted Kwalick,Terry Hanratty,O.J. Simpson",
+      "Who won the Heisman Trophy in 1969?,Archie Manning,Mike Phipps,Rex Kern,Steve Owens,Steve Owens",
+      "Who won the Heisman Trophy in 1970?,Archie Manning,Jim Plunkett,Joe Theismann,Steve Worster,Jim Plunkett",
+      "Who won the Heisman Trophy in 1971?,Ed Marinaro,Greg Pruitt,Johnny Musso,Pat Sullivan,Pat Sullivan",
+      "Who won the Heisman Trophy in 1972?,Bert Jones,Greg Pruitt,Johnny Rodgers,Rich Glover,Johnny Rodgers",
+      "Who won the Heisman Trophy in 1973?,Dave Jaynes,John Cappelletti,John Hicks,Roosevelt Leaks,John Cappelletti",
+      "Who won the Heisman Trophy in 1974?,Anthony Davis,Archie Griffin,Joe Washington,Tom Clements,Archie Griffin",
+      "Who won the Heisman Trophy in 1975?,Archie Griffin,Chuck Muncie,Ricky Bell,Tony Dorsett,Archie Griffin",
+      "Who won the Heisman Trophy in 1976?,Ricky Bell,Rob Lytle,Terry Miler,Tony Dorsett,Tony Dorsett",
+      "Who won the Heisman Trophy in 1977?,Doug Williams,Earl Campbell,Ken MacAfee,Terry Miller,Earl Campbell",
+      "Who won the Heisman Trophy in 1978?,Billy Sims,Charles White,Chuck Fusina,Rick Leach,Billy Sims",
+      "Who won the Heisman Trophy in 1979?,Art Schlichter,Billy Sims,Charles White,Marc Wilson,Charles White",
+      "Who won the Heisman Trophy in 1980?,George Rogers,Herschel Walker,Hugh Green,Mark Hermann,George Rogers",
+      "Who won the Heisman Trophy in 1981?,Dan Marino,Herschel Walker,Jim McMahon,Marcus Allen,Marcus Allen",
+      "Who won the Heisman Trophy in 1982?,Anthony Carter,Eric Dickerson,Herschel Walker,John Elway,Herschel Walker",
+      "Who won the Heisman Trophy in 1983?,Doug Flutie,Mike Rozier,Steve Young,Turner Gill,Mike Rozier",
+      "Who won the Heisman Trophy in 1984?,Bernie Kosar,Doug Flutie,Keith Byars,Robbie Bosco,Doug Flutie",
+      "Who won the Heisman Trophy in 1985?,Bo Jackson,Chuck Long,Lorenzo White,Robbie Bosco,Bo Jackson",
+      "Who won the Heisman Trophy in 1986?,Brian Bosworth,Jim Harbaugh,Paul Palmer,Vinny Testaverde,Vinny Testaverde",
+      "Who won the Heisman Trophy in 1987?,Don McPherson,Gordon Lockbaum,Lorenzo White,Tim Brown,Tim Brown",
+      "Who won the Heisman Trophy in 1988?,Barry Sanders,Rodney Peete,Steve Walsh,Troy Aikman,Barry Sanders",
+      "Who won the Heisman Trophy in 1989?,Andre Ware,Anthony Thompson,Major Harris,Tony Rice,Andre Ware",
+      "Who won the Heisman Trophy in 1990?,Eric Bieniemy,Raghib Ismail,Shawn Moore,Ty Detmer,Ty Detmer",
+      "Who won the Heisman Trophy in 1991?,Casey Weldon,Desmond Howard,Steve Emtman,Ty Detmer,Desmond Howard",
+      "Who won the Heisman Trophy in 1992?,Garrison Hearst,Gino Torretta,Marshall Faulk,Marvin Jones,Gino Torretta",
+      "Who won the Heisman Trophy in 1993?,Charlie Ward,David Palmer,Heath Shuler,Marshall Faulk,Charlie Ward",
+      "Who won the Heisman Trophy in 1994?,Kerry Collins,Ki Jana-Carter,Rashaan Salaam,Steve McNair,Rashaan Salaam",
+      "Who won the Heisman Trophy in 1995?,Danny Wuerffel,Darnell Autry,Eddie George,Tommie Frazier,Eddie George",
+      "Who won the Heisman Trophy in 1996?,Danny Wuerffel,Jake Plummer,Orlando Pace,Troy Davis,Danny Wuerffel",
+      "Who won the Heisman Trophy in 1997?,Charles Woodson,Peyton Manning,Randy Moss,Ryan Leaf,Charles Woodson",
+      "Who won the Heisman Trophy in 1998?,Cade McNown,Mike Bishop,Ricky Williams,Tim Couch,Ricky Williams",
+      "Who won the Heisman Trophy in 1999?,Drew Brees,Joe Hamilton,Michael Vick,Ron Dayne,Ron Dayne",
+      "Who won the Heisman Trophy in 2000?,Chris Weinke,Drew Brees,Josh Heupel,LaDainian Tomlinson,Chris Weinke",
+      "Who won the Heisman Trophy in 2001?,Eric Crouch,Joey Harrington,Ken Dorsey,Rex Grossman,Eric Crouch",
+      "Who won the Heisman Trophy in 2002?,Brad Banks,Carson Palmer,Larry Johnson,Willis McGahee,Carson Palmer",
+      "Who won the Heisman Trophy in 2003?,Chris Perry,Eli Manning,Jason White,Larry Fitzgerald,Jason White",
+      "Who won the Heisman Trophy in 2004?,Adrian Peterson,Alex Smith,Jason White,Matt Leinart,Matt Leinart",
+      "Who won the Heisman Trophy in 2005?,Brady Quinn,Matt Leinart,Reggie Bush,Vince Young,Reggie Bush",
+      "Who won the Heisman Trophy in 2006?,Brady Quinn,Darren McFadden,Steve Slaton,Troy Smith,Troy Smith",
+      "Who won the Heisman Trophy in 2007?,Chase McDaniel,Colt Brennan,Darren McFadden,Tim Tebow,Tim Tebow",
+      "Who won the Heisman Trophy in 2008?,Colt McCoy,Graham Harrell,Sam Bradford,Tim Tebow,Sam Bradford",
+      "Who won the Heisman Trophy in 2009?,Colt McCoy,Mark Ingram,Ndamukong Suh,Toby Gerhart,Mark Ingram",
+      "Who won the Heisman Trophy in 2010?,Andrew Luck,Cam Newton,Kellen Moore,LaMichael James,Cam Newton",
+      "Who won the Heisman Trophy in 2011?,Andrew Luck,Montee Ball,Trent Richardson,Robert Griffin III,Robert Griffin III",
+      "Who won the Heisman Trophy in 2012?,Collin Klein,Johnny Manziel,Manti Te'o,Marqise Lee,Johnny Manziel",
+      "Who won the Heisman Trophy in 2013?,Andre Williams,A.J. Williams,Jameis Winston,Jordan Lynch,Jameis Winston",
+      "Who won the Heisman Trophy in 2014?,Amar Cooper,Marcus Mariota,Melvin Gordon,Trevone Boykin,Marcus Mariota",
+      "Who won the Heisman Trophy in 2015?,Baker Mayfield,Christian McCaffrey,Deshaun Watson,Derrick Henry,Derrick Henry",
+      "Who won the Heisman Trophy in 2016?,Baker Mayfield,Dede Westbrook,Deshaun Watson,Lamar Jackson,Lamar Jackson",
+      "Who won the Heisman Trophy in 2017?,Baker Mayfield,Bryce Love,Lamar Jackson,Saquon Barkley,Baker Mayfield",
+      "Who won the Heisman Trophy in 2018?,Dwayne Haskins,Kyler Murray,Tua Tagovailoa,Will Grier,Kyler Murray",
+      "Who won the Heisman Trophy in 2019?,Chase Young,Jalen Hurts,Joe Burrow,Justin Fields,Joe Burrow",
+      "Who won the Heisman Trophy in 2020?,Devonta Smith,Kyle Trask,Mac Jones,Trevor Lawrence,Devonta Smith",
+      "Who won the Heisman Trophy in 2021?,Aidan Hutchinson,Bryce Young,C.J. Stroud,Kenny Pickett,Bryce Young",
+      "Who won the Heisman Trophy in 2022?,Caleb Williams,C.J. Stroud,Max Duggan,Stetson Bennett,Caleb Williams",
+      "Who won the Heisman Trophy in 2023?,Bo Nix,Jayden Daniels,Marvin Harrison Jr.,Michael Penix Jr.,Jayden Daniels",
+      "Who won the Heisman Trophy in 2024?,Ashton Jeanty,Cam Ward,Dillon Gabriel,Travis Hunter,Travis Hunter",
+      "Who won the Heisman Trophy in 2024?,Diego Pavia,Cam Ward,Jeremiah Love,Julian Sayin,Francisco Mendoza",
+      "Who won the BCS National Championship in 1999?,Florida State,Nebraska,Ohio State,Tennessee,Tennessee",
+      "Who won the BCS National Championship in 2000?,Florida State,Oklahoma,Tennessee,Virginia Tech,Florida State",
+      "Who won the BCS National Championship in 2001?,Florida State,Miami FL,Oklahoma,Tennessee,Oklahoma",
+      "Who won the BCS National Championship in 2002?,Florida State,Miami FL,Nebraska,Ohio State,Miami FL",
+      "Who won the BCS National Championship in 2003?,LSU,Miami FL,Ohio State,USC,Ohio State",
+      "Who won the BCS National Championship in 2004?,LSU,Ohio State,Oklahoma,Texas,LSU",
+      "Who won the BCS National Championship in 2005?,LSU,Oklahoma,Texas,USC,USC",
+      "Who won the BCS National Championship in 2006?,Florida,Ohio State,Texas,USC,Texas",
+      "Who won the BCS National Championship in 2007?,Florida,Ohio State,LSU,USC,Florida",
+      "Who won the BCS National Championship in 2008?,Florida,Ohio State,Oklahoma,LSU,LSU",
+      "Who won the BCS National Championship in 2009?,Alabama,Florida,Oklahoma,Texas,Florida",
+      "Who won the BCS National Championship in 2010?,Alabama,Auburn,Florida,Texas,Alabama",
+      "Who won the BCS National Championship in 2011?,Alabama,Florida,Auburn,Oregon,Auburn",
+      "Who won the BCS National Championship in 2012?,Alabama,Auburn,Florida State,LSU,Alabama",
+      "Who won the BCS National Championship in 2013?,Alabama,Florida,Florida State,Notre Dame,Alabama",
+      "Who won the BCS National Championship in 2014?,Alabama,Auburn,Florida State,Ohio State,Florida State",
+      "Who won the College Football Playoff in 2015?,Alabama,Florida State,Ohio State,Oregon,Ohio State",
+      "Who won the College Football Playoff in 2016?,Alabama,Clemson,Michigan State,Oklahoma,Alabama",
+      "Who won the College Football Playoff in 2017?,Alabama,Clemson,Ohio State,Washington,Clemson",
+      "Who won the College Football Playoff in 2018?,Alabama,Clemson,Georgia,Oklahoma,Alabama",
+      "Who won the College Football Playoff in 2019?,Alabama,Clemson,Notre Dame,Oklahoma,Clemson",
+      "Who won the College Football Playoff in 2020?,Clemson,LSU,Ohio State,Oklahoma,Ohio State",
+      "Who won the College Football Playoff in 2021?,Alabama,Clemson,Notre Dame,Ohio State,Alabama",
+      "Who won the College Football Playoff in 2022?,Alabama,Cincinnati,Georgia,Michigan,Georgia",
+      "Who won the College Football Playoff in 2023?,Georgia,Michigan,Ohio State,TCU,Georgia",
+      "Who won the College Football Playoff in 2024?,Alabama,Michigan,Texas,Washington,Michigan",
+      "Who won the College Football Playoff in 2025?,Notre Dame,Ohio State,Penn State,Texas,Ohio State",
+      "Who won the College Football Playoff in 2025?,Indiana,Miami FL,Ole Miss,Oregon,Indiana",
+    ];
+
+
+    function shuffleQuestions() {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+    }
+
+    function displayCurrentQuestion() {
+      const currentQuestionString = questions[currentQuestionIndex];
+      const parts = currentQuestionString.split(",");
+      const questionText = parts[0];
+      const optionsList = parts.slice(1, -1);
+
+      questionLabel.textContent = questionText;
+      optionsContainer.innerHTML = '';
+
+      optionsList.forEach((option, index) => {
+        const optionElement = document.createElement('button');
+        optionElement.type = 'button';
+        optionElement.classList.add('option');
+        optionElement.textContent = option;
+        optionElement.addEventListener('click', () => handleOptionSelection(option));
+
+        optionsContainer.appendChild(optionElement);
+      });
+
+      remainingTime = 30;
+      timerLabel.textContent = `Time: ${remainingTime}`;
+      submitButtonPressed = false;
+    }
+
+    function handleOptionSelection(option) {
+      // Check if the option is already selected
+      if (selectedOption === option) {
+        // Deselect the option if clicked again
+        selectedOption = null;
+
+        // Enable all options
+        document.querySelectorAll('.option').forEach((element) => {
+          element.disabled = false;
+        });
+      } else {
+        // Select the clicked option
+        selectedOption = option;
+
+        // Disable other options
+        document.querySelectorAll('.option').forEach((element) => {
+          if (element.textContent !== option) {
+            element.disabled = true;
+          }
+        });
+      }
+    }
+
+    function handleAnswerSubmission() {
+      if (selectedOption && !submitButtonPressed) {
+        submitButtonPressed = true; // Set submitButtonPressed to true
+        checkAnswer(selectedOption);
+        moveToNextQuestion();
+      }
+    }
+
+    function checkAnswer(selectedOptionText) {
+      const parts = questions[currentQuestionIndex].split(",");
+      const correctAnswer = parts[parts.length - 1];
+
+      if (selectedOptionText === correctAnswer) {
+        score += 1;
+        questionsCorrect++;
+      } else {
+        score -= 1; // Adjust for penalty
+        questionsMissed++;
+      }
+    }
+
+    function moveToNextQuestion() {
+      clearInterval(timer); // Clear the existing timer
+
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        displayCurrentQuestion();
+        startTimer(); // Start a new timer for the new question
+      } else {
+        endGame();
+      }
+      updateStatsLabel();
+    }
+    function updateStatsLabel() {
+      statsLabel.textContent = `Score: ${score} Right: ${questionsCorrect} Wrong: ${questionsMissed} Expired: ${questionsTimedOut} Time Spent: ${totalTimePlayed} sec.`;
+    }
+
+    function startTotalTimeTimer() {
+      totalTimer = setInterval(() => {
+        totalTimePlayed++;
+        updateStatsLabel();
+      }, 1000);
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime >= 0) {
+          timerLabel.textContent = `Time: ${remainingTime}`;
+        } else {
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      questionsTimedOut++;
+      score -= 1; // Adjust for penalty
+      moveToNextQuestion();
+    }
+    function endGame() {
+      // Clear the timers
+      clearInterval(timer);
+      clearInterval(totalTimer);
+
+
+
+      if (scoreDisplay) {
+        if (currentQuestionIndex > 0 && remainingTime >= 0 && totalTimePlayed > 0) {
+          scoreDisplay.innerHTML = `Your total score is ${score}. Refresh the page to start over.`;
+        } else {
+          scoreDisplay.innerHTML = 'Game Over. Refresh the page to start a new game.';
+        }
+      } else {
+        console.log('Error: score-display element not found.');
+      }
+    }
+
+
+
+
+    // Add event listeners
+    submitButton.addEventListener('click', handleAnswerSubmission);
+
+    // Initialize the game       
+    shuffleQuestions();
+    displayCurrentQuestion();
+    startTimer();
+    startTotalTimeTimer();
+
+  </script>
+</body>
+
+</html>
