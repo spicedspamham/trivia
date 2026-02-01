@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .quiz-container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #F44336;
+      margin-bottom: 20px;
+    }
+
+    .question {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: blue;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+
+    /* ... (your existing styles) ... */
+
+    .option {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      /* Add some margin between buttons */
+      transition: background-color 0.3s ease;
+    }
+
+    .option:hover {
+      background-color: #45a049;
+    }
+
+    .option:disabled {
+      background-color: #ddd;
+      color: #2196F3;
+      cursor: not-allowed;
+    }
+
+
+    .stats-panel {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #stats-label {
+      color: black;
+    }
+
+    #timer-label {
+      font-weight: bold;
+    }
+
+    #submit-button {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #submit-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-container">
+    <h1>NFL Draft Trivia</h1>
+    <div class="question" id="question-label"></div>
+    <div id="options-container" class="options"></div>
+    <div id="score-display"></div>
+    <div class="stats-panel">
+      <span id="timer-label">Time: 30</span>
+      <span id="stats-label">Score: 0 Right: 0 Wrong: 0 Expired: 0 Time Spent: 0 sec.</span>
+      <button id="submit-button">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    let currentQuestionIndex = 0;
+    let remainingTime = 30;
+    let score = 0;
+    let questionsCorrect = 0;
+    let questionsMissed = 0;
+    let questionsTimedOut = 0;
+    let totalTimePlayed = 0;
+    let selectedOption = null; // Variable to track the selected option
+    let submitButtonPressed = false;
+    let timer;
+    let totalTimer;
+    let scoreDisplay = document.getElementById('score-display');
+
+    // Your HTML elements
+    const questionLabel = document.getElementById('question-label');
+    const optionsContainer = document.getElementById('options-container');
+    const timerLabel = document.getElementById('timer-label');
+    const statsLabel = document.getElementById('stats-label');
+    const submitButton = document.getElementById('submit-button');
+    const questions = [
+      "Who was the 1st overall pick of the NFL draft in 1936?,Jay Berwanger,Joe Stydahar,Riley Smith ,Tuffy Leemans,Jay Berwanger",
+      "Who was the 1st overall pick of the NFL draft in 1937?,Ace Parker,Ed Goddard,Sammy Baugh,Sam Francis,Sam Francis",
+      "Who was the 1st overall pick of the NFL draft in 1938?,Alex Wojciechowicz,Corbett Davis,Frank Kinard,James Allen McDonald,Corbett Davis",
+      "Who was the 1st overall pick of the NFL draft in 1939?,Bullet Hall,Davey O'Brien,Ki Aldrich,Sid Luckman,Ki Aldrich",
+      "Who was the 1st overall pick of the NFL draft in 1940?,Bulldog Turner,George Cafego,George McAfee,Kay Eakin,George Cafego",
+      "Who was the 1st overall pick of the NFL draft in 1941?,John Kimbrough,Norm Standlee,Rudy Mucha,Tom Harmon,Tom Harmon",
+      "Who was the 1st overall pick of the NFL draft in 1942?,Bill Dudley,Jack Wilson,Mac Speedie,Steve Lach,Bill Dudley",
+      "Who was the 1st overall pick of the NFL draft in 1943?,Glenn Dobbs,Frank Sinkwich,Joe Muha,Paul Governali,Frank Sinkwich",
+      "Who was the 1st overall pick of the NFL draft in 1944?,Angelo Bertelli,Bob Waterfield,Otto Graham,Steve Van Buren,Angelo Bertelli",
+      "Who was the 1st overall pick of the NFL draft in 1945?,Charley Trippi,Elroy Hirsch,Jim Hardy,Pete Pihos,Charley Trippi",
+      "Who was the 1st overall pick of the NFL draft in 1946?,Doc Blanchard,Dub Jones,Frank Dancewicz,Johnny Lujack,Frank Dancewicz",
+      "Who was the 1st overall pick of the NFL draft in 1947?,Bob Fenimore,Dante Lavelli,Ernie Case,Glenn Davis,Bob Fenimore",
+      "Who was the 1st overall pick of the NFL draft in 1948?,Bobby Layne,Emlen Tunnell,Harry Gilmer,Y.A. Tittle,Harry Gilmer",
+      "Who was the 1st overall pick of the NFL draft in 1949?,Bobby Thompson,Chuck Bednarik,Doak Walker,Norm Van Brocklin,Chuck Bednarik",
+      "Who was the 1st overall pick of the NFL draft in 1950?,Adrian Burk,Bud Grant,Ernie Stautner,Leon Hart,Leon Hart",
+      "Who was the 1st overall pick of the NFL draft in 1951?,Bill George,Bob Williams,Kyle Rote,Y.A. Tittle,Kyle Rote",
+      "Who was the 1st overall pick of the NFL draft in 1952?,Bill Wade,Gino Marchetti,Les Richter,Ollie Matson,Bill Wade",
+      "Who was the 1st overall pick of the NFL draft in 1953?,Doug Atkins,Harry Babcock,Joe Schmidt,John Henry Johnson,Harry Babcock",
+      "Who was the 1st overall pick of the NFL draft in 1954?,Art Hunter,Bobby Garrett,Cotton Davidson,Lamar McHan,Bobby Garrett",
+      "Who was the 1st overall pick of the NFL draft in 1955?,Alan Ameche,George Shaw,Johny Unitas,Ralph Guglielmi,George Shaw",
+      "Who was the 1st overall pick of the NFL draft in 1956?,Art Davis,Earl Morrall,Gary Glick,Howard Cassidy,Gary Glick",
+      "Who was the 1st overall pick of the NFL draft in 1957?,Jim Brown,John Brodie,Len Dawson,Paul Hornung,Paul Hornung",
+      "Who was the 1st overall pick of the NFL draft in 1958?,Alex Karras,Jim Taylor,John David Crow,King Hill,King Hill",
+      "Who was the 1st overall pick of the NFL draft in 1959?,Don Allard,Lee Grosscup,Nick Pietrosante,Randy Duncan,Randy Duncan",
+      "Who was the 1st overall pick of the NFL draft in 1960?,Billy Cannon,Don Meredith,Johnny Robinson,Ron Mix,Billy Cannon",
+      "Who was the 1st overall pick of the NFL draft in 1961?,Bob Lilly,Mike Ditka,Norm Snead,Tommy Mason,Tommy Mason",
+      "Who was the 1st overall pick of the NFL draft in 1962?,Ernie Davis,Lance Alworth,Merlin Olson,Roman Gabriel,Ernie Davis",
+      "Who was the 1st overall pick of the NFL draft in 1963?,Bobby Bell,Bob Vogel,Lee Roy Jordan,Terry Baker,Terry Baker",
+      "Who was the 1st overall pick of the NFL draft in 1964?,Bob Brown,Carl Eller,Dave Parks,Scott Appleton,Dave Parks",
+      "Who was the 1st overall pick of the NFL draft in 1965?,Craig Morton,Dick Butkus,Gale Sayers,Tucker Frederickson,Tucker Frederickson",
+      "Who was the 1st overall pick of the NFL draft in 1966?,Carl McAdams,John Niland,Tommy Nobis,Tom Mack,Tommy Nobis",
+      "Who was the 1st overall pick of the NFL draft in 1967?,Alan Page,Bob Griese,Bubba Smith,Floyd Little,Bubba Smith",
+      "Who was the 1st overall pick of the NFL draft in 1968?,Claude Humphrey,Curley Culp,Larry Csonka,Ron Yary,Ron Yary",
+      "Who was the 1st overall pick of the NFL draft in 1969?,Greg Cook,Joe Greene,O.J. Simpson,Ted Hendricks,O.J. Simpson",
+      "Who was the 1st overall pick of the NFL draft in 1970?,Mike McCoy,Mike Phipps,Steve Owens,Terry Bradshaw,Terry Bradshaw",
+      "Who was the 1st overall pick of the NFL draft in 1971?,Archie Manning,Dan Pastorini,Jim Plunkett,John Riggins,Jim Plunkett",
+      "Who was the 1st overall pick of the NFL draft in 1972?,Cliff Branch,Franco Harris,Sherman White,Walt Patulski,Walt Patulski",
+      "Who was the 1st overall pick of the NFL draft in 1973?,Jerry Sizemore,Joe DeLamielleure,John Hannah,John Matuszak ,John Matuszak ",
+      "Who was the 1st overall pick of the NFL draft in 1974?,Ed Jones,Jack Lambert,John Dutton,Randy Gradishar,Ed Jones",
+      "Who was the 1st overall pick of the NFL draft in 1975?,Randy White,Robert Brazile,Steve Bartkowski,Walter Payton,Steve Bartkowski",
+      "Who was the 1st overall pick of the NFL draft in 1976?,Jackie Slater,Lee Roy Selmon,Mike Haynes,Steve Niehaus ,Lee Roy Selmon",
+      "Who was the 1st overall pick of the NFL draft in 1977?,Pete Johnson,Ricky Bell,Tony Dorsett,Wilbert Montgomery,Ricky Bell",
+      "Who was the 1st overall pick of the NFL draft in 1978?,Earl Campbell,James Lofton,Ozzie Newsome,Warren Moon,Earl Campbell",
+      "Who was the 1st overall pick of the NFL draft in 1979?,Dan Hampton,Jack Thompson,Ottis Anderson,Tom Cousineau ,Tom Cousineau ",
+      "Who was the 1st overall pick of the NFL draft in 1980?,Anthony Muñoz,Art Monk,Billy Sims,Dwight Stephenson,Billy Sims",
+      "Who was the 1st overall pick of the NFL draft in 1981?,Freeman McNeil,George Rogers,Kenny Easley,Lawrence Taylor,George Rogers",
+      "Who was the 1st overall pick of the NFL draft in 1982?,Chip Banks,Kenneth Sims,Marcus Allen,Mike Munchak,Kenneth Sims",
+      "Who was the 1st overall pick of the NFL draft in 1983?,Curt Warner,Dan Marino,Eric Dickerson,John Elway,John Elway",
+      "Who was the 1st overall pick of the NFL draft in 1984?,Boomer Esiason,Carl Banks,Irving Fryar,Wilber Marshall,Irving Fryar",
+      "Who was the 1st overall pick of the NFL draft in 1985?,Bruce Smith,Chris Doleman,Jerry Rice,Ray Childress,Bruce Smith",
+      "Who was the 1st overall pick of the NFL draft in 1986?,Bo Jackson,Jim Everett,Leslie O'Neal,Neal Anderson,Bo Jackson",
+      "Who was the 1st overall pick of the NFL draft in 1987?,Cornelius Bennett ,Cris Carter,Rod Woodson,Vinny Testaverde,Vinny Testaverde",
+      "Who was the 1st overall pick of the NFL draft in 1988?,Aundray Bruce,Michael Irvin,Neil Smith,Tim Brown,Aundray Bruce",
+      "Who was the 1st overall pick of the NFL draft in 1989?,Barry Sanders,Deion Sanders,Derrick Thomas,Troy Aikman,Troy Aikman",
+      "Who was the 1st overall pick of the NFL draft in 1990?,Cortez Kennedy,Emmitt Smith,Jeff George,Junior Seau,Jeff George",
+      "Who was the 1st overall pick of the NFL draft in 1991?,Brett Favre,Eric Swann,Eric Turner,Russell Maryland,Russell Maryland",
+      "Who was the 1st overall pick of the NFL draft in 1992?,Desmond Howard,Sean Gilbert,Steve Emtman,Troy Vincent,Steve Emtman",
+      "Who was the 1st overall pick of the NFL draft in 1993?,Drew Bledsoe,Jerome Bettis,Rick Mirer,Willie Roaf,Drew Bledsoe",
+      "Who was the 1st overall pick of the NFL draft in 1994?,Bryant Young,Dan Wilkerson,Isaac Bruce,Marshall Faulk,Dan Wilkerson",
+      "Who was the 1st overall pick of the NFL draft in 1995?,Kerry Collins,Ki-Jana Carter,Steve McNair,Tony Boselli,Ki-Jana Carter",
+      "Who was the 1st overall pick of the NFL draft in 1996?,Eddie George,Jonathan Ogden,Marvin Harrison,Keyshawn Johnson,Keyshawn Johnson",
+      "Who was the 1st overall pick of the NFL draft in 1997?,Corey Dillon,Orlando Pace,Walter Jones,Warrick Dunn,Orlando Pace",
+      "Who was the 1st overall pick of the NFL draft in 1998?,Fred Taylor,Peyton Manning,Randy Moss,Ryan Leaf,Peyton Manning",
+      "Who was the 1st overall pick of the NFL draft in 1999?,Akili Smith,Daunte Culpepper,Donovan McNabb,Tim Couch,Tim Couch",
+      "Who was the 1st overall pick of the NFL draft in 2000?,Brian Urlacher,Courtney Brown,Jamal Lewis,LaVar Arrington,Courtney Brown",
+      "Who was the 1st overall pick of the NFL draft in 2001?,Justin Smith,LaDainian Tomlinson,Michael Vick,Richard Seymour,Michael Vick",
+      "Who was the 1st overall pick of the NFL draft in 2002?,David Carr,Dwight Freeney,Joey Harrington,Julius Peppers,David Carr",
+      "Who was the 1st overall pick of the NFL draft in 2003?,Andre Johnson,Byron Leftwich,Carson Palmer,Terrell Suggs,Carson Palmer",
+      "Who was the 1st overall pick of the NFL draft in 2004?,Ben Roethlisberger,Eli Manning,Larry Fitzgerald,Philip Rivers,Eli Manning",
+      "Who was the 1st overall pick of the NFL draft in 2005?,Alex Smith,Braylon Edwards,Cedric Benson,DeMarcus Ware,Alex Smith",
+      "Who was the 1st overall pick of the NFL draft in 2006?,Matt Leinart,Mario Williams,Reggie Bush,Vince Young,Mario Williams",
+      "Who was the 1st overall pick of the NFL draft in 2007?,Adrian Peterson,Calvin Johnson,JaMarcus Russell,Joe Thomas,JaMarcus Russell",
+      "Who was the 1st overall pick of the NFL draft in 2008?,Chris Long,Darren McFadden,Jake Long,Matt Ryan,Jake Long",
+      "Who was the 1st overall pick of the NFL draft in 2009?,B.J. Raji,Matthew Stafford,Mark Sanchez,Michael Crabtree,Matthew Stafford",
+      "Who was the 1st overall pick of the NFL draft in 2010?,Gerald McCoy,Ndamukong Suh,Sam Bradford,Trent Williams,Sam Bradford",
+      "Who was the 1st overall pick of the NFL draft in 2011?,A.J. Green,Cam Newton,Julio Jones,Von Miller,Cam Newton",
+      "Who was the 1st overall pick of the NFL draft in 2012?,Andrew Luck,Robert Griffin III,Ryan Tannehill,Trent Richardson,Andrew Luck",
+      "Who was the 1st overall pick of the NFL draft in 2013?,Dion Jordan,Eric Fisher,Lane Johnson,Luke Joeckel,Eric Fisher",
+      "Who was the 1st overall pick of the NFL draft in 2014?,Blake Bortles,Jadeveon Clowney,Jake Matthews,Khalil Mack,Jadeveon Clowney",
+      "Who was the 1st overall pick of the NFL draft in 2015?,Amari Cooper,Jameis Winston,Marcus Mariota,Todd Gurley,Jameis Winston",
+      "Who was the 1st overall pick of the NFL draft in 2016?,Carson Wentz,Ezekiel Elliot,Jared Goff,Joey Bosa,Jared Goff",
+      "Who was the 1st overall pick of the NFL draft in 2017?,Mitchell Trubisky,Myles Garrett,Patrick Mahomes,T.J. Watt,Myles Garrett",
+      "Who was the 1st overall pick of the NFL draft in 2018?,Baker Mayfield,Denzel Ward,Sam Darnold,Saquon Barkley,Baker Mayfield",
+      "Who was the 1st overall pick of the NFL draft in 2019?,Daniel Jones,Kyler Murray,Nick Bosa,Quinnen Williams,Kyler Murray",
+      "Who was the 1st overall pick of the NFL draft in 2020?,Chase Young,Joe Burrow,Justin Herbert ,Tua Tagovailoa ,Joe Burrow",
+      "Who was the 1st overall pick of the NFL draft in 2021?,Ja'Marr Chase ,Trevor Lawrence,Trey Lance,Zach Wilson,Trevor Lawrence",
+      "Who was the 1st overall pick of the NFL draft in 2022?,Aidan Hutchinson,Derek Stingley Jr.,Sauce Gardner,Travon Walker,Travon Walker",
+      "Who was the 1st overall pick of the NFL draft in 2023?,Anthony Richardson,Bryce Young,C.J. Stroud,Will Anderson Jr.,Bryce Young",
+      "Who was the 1st overall pick of the NFL draft in 2024?,Caleb Williams,Drake Maye,Marvin Harrison Jr.,Caleb Williams",
+    ];
+
+
+    function shuffleQuestions() {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+    }
+
+    function displayCurrentQuestion() {
+      const currentQuestionString = questions[currentQuestionIndex];
+      const parts = currentQuestionString.split(",");
+      const questionText = parts[0];
+      const optionsList = parts.slice(1, -1);
+
+      questionLabel.textContent = questionText;
+      optionsContainer.innerHTML = '';
+
+      optionsList.forEach((option, index) => {
+        const optionElement = document.createElement('button');
+        optionElement.type = 'button';
+        optionElement.classList.add('option');
+        optionElement.textContent = option;
+        optionElement.addEventListener('click', () => handleOptionSelection(option));
+
+        optionsContainer.appendChild(optionElement);
+      });
+
+      remainingTime = 30;
+      timerLabel.textContent = `Time: ${remainingTime}`;
+      submitButtonPressed = false;
+    }
+
+    function handleOptionSelection(option) {
+      // Check if the option is already selected
+      if (selectedOption === option) {
+        // Deselect the option if clicked again
+        selectedOption = null;
+
+        // Enable all options
+        document.querySelectorAll('.option').forEach((element) => {
+          element.disabled = false;
+        });
+      } else {
+        // Select the clicked option
+        selectedOption = option;
+
+        // Disable other options
+        document.querySelectorAll('.option').forEach((element) => {
+          if (element.textContent !== option) {
+            element.disabled = true;
+          }
+        });
+      }
+    }
+
+    function handleAnswerSubmission() {
+      if (selectedOption && !submitButtonPressed) {
+        submitButtonPressed = true; // Set submitButtonPressed to true
+        checkAnswer(selectedOption);
+        moveToNextQuestion();
+      }
+    }
+
+    function checkAnswer(selectedOptionText) {
+      const parts = questions[currentQuestionIndex].split(",");
+      const correctAnswer = parts[parts.length - 1];
+
+      if (selectedOptionText === correctAnswer) {
+        score += 1;
+        questionsCorrect++;
+      } else {
+        score -= 1; // Adjust for penalty
+        questionsMissed++;
+      }
+    }
+
+    function moveToNextQuestion() {
+      clearInterval(timer); // Clear the existing timer
+
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        displayCurrentQuestion();
+        startTimer(); // Start a new timer for the new question
+      } else {
+        endGame();
+      }
+      updateStatsLabel();
+    }
+    function updateStatsLabel() {
+      statsLabel.textContent = `Score: ${score} Right: ${questionsCorrect} Wrong: ${questionsMissed} Expired: ${questionsTimedOut} Time Spent: ${totalTimePlayed} sec.`;
+    }
+
+    function startTotalTimeTimer() {
+      totalTimer = setInterval(() => {
+        totalTimePlayed++;
+        updateStatsLabel();
+      }, 1000);
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime >= 0) {
+          timerLabel.textContent = `Time: ${remainingTime}`;
+        } else {
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      questionsTimedOut++;
+      score -= 1; // Adjust for penalty
+      moveToNextQuestion();
+    }
+    function endGame() {
+      // Clear the timers
+      clearInterval(timer);
+      clearInterval(totalTimer);
+
+
+
+      if (scoreDisplay) {
+        if (currentQuestionIndex > 0 && remainingTime >= 0 && totalTimePlayed > 0) {
+          scoreDisplay.innerHTML = `Your total score is ${score}. Refresh the page to start over.`;
+        } else {
+          scoreDisplay.innerHTML = 'Game Over. Refresh the page to start a new game.';
+        }
+      } else {
+        console.log('Error: score-display element not found.');
+      }
+    }
+
+
+
+
+    // Add event listeners
+    submitButton.addEventListener('click', handleAnswerSubmission);
+
+    // Initialize the game       
+    shuffleQuestions();
+    displayCurrentQuestion();
+    startTimer();
+    startTotalTimeTimer();
+
+  </script>
+</body>
+
+</html>
