@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .quiz-container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+      padding: 30px;
+      width: 400px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #F44336;
+      margin-bottom: 20px;
+    }
+
+    .question {
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: blue;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+
+    /* ... (your existing styles) ... */
+
+    .option {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      /* Add some margin between buttons */
+      transition: background-color 0.3s ease;
+    }
+
+    .option:hover {
+      background-color: #45a049;
+    }
+
+    .option:disabled {
+      background-color: #ddd;
+      color: #2196F3;
+      cursor: not-allowed;
+    }
+
+
+    .stats-panel {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #stats-label {
+      color: black;
+    }
+
+    #timer-label {
+      font-weight: bold;
+    }
+
+    #submit-button {
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #submit-button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-container">
+    <h1>NBA 1st Overall Pick Trivia</h1>
+    <div class="question" id="question-label"></div>
+    <div id="options-container" class="options"></div>
+    <div id="score-display"></div>
+    <div class="stats-panel">
+      <span id="timer-label">Time: 30</span>
+      <span id="stats-label">Score: 0 Right: 0 Wrong: 0 Expired: 0 Time Spent: 0 sec.</span>
+      <button id="submit-button">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    let currentQuestionIndex = 0;
+    let remainingTime = 30;
+    let score = 0;
+    let questionsCorrect = 0;
+    let questionsMissed = 0;
+    let questionsTimedOut = 0;
+    let totalTimePlayed = 0;
+    let selectedOption = null; // Variable to track the selected option
+    let submitButtonPressed = false;
+    let timer;
+    let totalTimer;
+    let scoreDisplay = document.getElementById('score-display');
+
+    // Your HTML elements
+    const questionLabel = document.getElementById('question-label');
+    const optionsContainer = document.getElementById('options-container');
+    const timerLabel = document.getElementById('timer-label');
+    const statsLabel = document.getElementById('stats-label');
+    const submitButton = document.getElementById('submit-button');
+    const questions = [
+      "Who was the 1st overall pick of the BAA draft in 1947?,Bubs Ehlers,Clifton McNeely,Glen Selbo,Red Rocha,Clifton McNeely",
+      "Who was the 1st overall pick of the BAA draft in 1948?,Andy Tonkovich,Bobby Wanzer,Dolph Schayes,Ed Mikan,Andy Tonkovich",
+      "Who was the 1st overall pick of the BAA draft in 1949?,Alex Groza,Ed Macauley,Howie Shannon,Vern Mikkelsen,Howie Shannon",
+      "Who was the 1st overall pick of the NBA draft in 1950?,Bob Cousy,Chuck Cooper,Chuck Share,Paul Arizin,Chuck Share",
+      "Who was the 1st overall pick of the NBA draft in 1951?,Gene Melchiorre,Marc Freiberger,Mel Hutchins,Myer Skoog,Gene Melchiorre",
+      "Who was the 1st overall pick of the NBA draft in 1952?,Bill Mlkvy,Clyde Lovellette,Dick Groat,Mark Workman,Mark Workman",
+      "Who was the 1st overall pick of the NBA draft in 1953?,Ernie Beck,Frank Ramsey,Ray Felix,Walter Dukes,Ray Felix",
+      "Who was the 1st overall pick of the NBA draft in 1954?,Bob Pettit,Frank Selvy,Gene Shue,Johnny Kerr,Frank Selvy",
+      "Who was the 1st overall pick of the NBA draft in 1955?,Dick Garmaker,Dick Ricketts,Jack Twyman,Tom Gola,Dick Ricketts",
+      "Who was the 1st overall pick of the NBA draft in 1956?,Bill Russell,Si Green,Tom Heinsohn,Willie Naulls,Si Green",
+      "Who was the 1st overall pick of the NBA draft in 1957?,Charlie Tyra,Jim Krebs,Rod Hundley,Sam Jones,Rod Hundley",
+      "Who was the 1st overall pick of the NBA draft in 1958?,Elgin Baylor,Guy Rodgers,Hal Greer,Wayne Embry,Elgin Baylor",
+      "Who was the 1st overall pick of the NBA draft in 1959?,Bailey Howell,Bob Boozer,Dick Barnett,Wilt Chamberlain,Bob Boozer",
+      "Who was the 1st overall pick of the NBA draft in 1960?,Jerry West,Lenny Wilkens,Oscar Robertson,Tom Sanders,Oscar Robertson",
+      "Who was the 1st overall pick of the NBA draft in 1961?,Bill Bridges,Don Kojis,Tom Meschery,Walt Bellamy,Walt Bellamy",
+      "Who was the 1st overall pick of the NBA draft in 1962?,Bill McGill,Dave DeBusschere,Jerry Lucas,John Havlicek,Bill McGill",
+      "Who was the 1st overall pick of the NBA draft in 1963?,Art Heyman,Nate Thurmond,Rod Thorn,Tom Thacker,Art Heyman",
+      "Who was the 1st overall pick of the NBA draft in 1964?,George Wilson,Jim Barnes,Walt Hazzard,Willis Reed,Jim Barnes",
+      "Who was the 1st overall pick of the NBA draft in 1965?,Bill Bradley,Bill Buntin,Fred Hetzel,Gail Goodrich,Fred Hetzel",
+      "Who was the 1st overall pick of the NBA draft in 1966?,Cazzie Russell,Clyde Lee,Dave Bing,Lou Hudson,Cazzie Russell",
+      "Who was the 1st overall pick of the NBA draft in 1967?,Earl Monroe,Jimmy Walker,Sonny Dove,Walt Frazier,Jimmy Walker",
+      "Who was the 1st overall pick of the NBA draft in 1968?,Bob Kauffman,Don Smith,Elvin Hayes,Wes Unseld,Elvin Hayes",
+      "Who was the 1st overall pick of the NBA draft in 1969?,Butch Beard,Jo Jo White,Kareem Abdul-Jabbar,Steve Mix,Kareem Abdul-Jabbar",
+      "Who was the 1st overall pick of the NBA draft in 1970?,Bob Lanier,Dave Cowens,Pete Maravich,Rudy Tomjanovich,Bob Lanier",
+      "Who was the 1st overall pick of the NBA draft in 1971?,Austin Carr,Curtis Rowe,Fred Brown,Sidney Wicks,Austin Carr",
+      "Who was the 1st overall pick of the NBA draft in 1972?,Bob McAdoo,Julius Erving,LaRue Martin,Paul Westphal,LaRue Martin",
+      "Who was the 1st overall pick of the NBA draft in 1973?,Doug Collins,George McGinnis,Larry Kenon,Kermit Washington,Doug Collins",
+      "Who was the 1st overall pick of the NBA draft in 1974?,Bill Walton,Bobby Jones,George Gervin,Maurice Lucas,Bill Walton",
+      "Who was the 1st overall pick of the NBA draft in 1975?,Alvan Adams,David Thompson,Darryl Dawkins,Lionel Hollins,David Thompson",
+      "Who was the 1st overall pick of the NBA draft in 1976?,Adrian Dantley,John Lucas,Robert Parish,Scott May,John Lucas",
+      "Who was the 1st overall pick of the NBA draft in 1977?,Bernard King,Kent Benson,Marques Johnson,Tree Rollins,Kent Benson",
+      "Who was the 1st overall pick of the NBA draft in 1978?,Larry Bird,Michael Ray Richardson,Mychal Thompson,Phil Ford,Mychal Thompson",
+      "Who was the 1st overall pick of the NBA draft in 1979?,Bill Cartwright,Bill Laimbeer,Magic Johnson,Sidney Moncrief,Magic Johnson",
+      "Who was the 1st overall pick of the NBA draft in 1980?,Andrew Toney,Darrell Griffith,Joe Barry Carroll,Kevin McHale,Joe Barry Carroll",
+      "Who was the 1st overall pick of the NBA draft in 1981?,Buck Williams,Isiah Thomas,Mark Aguirre,Tom Chambers,Mark Aguirre",
+      "Who was the 1st overall pick of the NBA draft in 1982?,Clark Kellogg,Dominique Wilkins,James Worthy,Terry Cummings,James Worthy",
+      "Who was the 1st overall pick of the NBA draft in 1983?,Byron Scott,Clyde Drexler,Ralph Sampson,Steve Stipanovich,Ralph Sampson",
+      "Who was the 1st overall pick of the NBA draft in 1984?,Charles Barkley,Hakeem Olajuwon,Michael Jordan,Sam Bowie,Hakeem Olajuwon",
+      "Who was the 1st overall pick of the NBA draft in 1985?,Charles Oakley,Chris Mullin,Karl Malone,Patrick Ewing,Patrick Ewing",
+      "Who was the 1st overall pick of the NBA draft in 1986?,Brad Daughtery,Chris Washburn,Chuck Person,Len Bias,Brad Daughtery",
+      "Who was the 1st overall pick of the NBA draft in 1987?,David Robinson,Horace Grant,Reggie Miller,Scottie Pippen,David Robinson",
+      "Who was the 1st overall pick of the NBA draft in 1988?,Danny Manning,Hershey Hawkins,Mitch Richmond,Rik Smits,Danny Manning",
+      "Who was the 1st overall pick of the NBA draft in 1989?,Danny Ferry,Glen Rice,Sean Elliot,Tim Hardaway,Pervis Ellison",
+      "Who was the 1st overall pick of the NBA draft in 1990?,Bo Kimble,Derrick Coleman,Gary Payton,Toni Kukoč,Derrick Coleman",
+      "Who was the 1st overall pick of the NBA draft in 1991?,Dikembe Mutombo,Kenny Anderson,Larry Johnson,Steve Smith,Larry Johnson",
+      "Who was the 1st overall pick of the NBA draft in 1992?,Alonzo Mourning,Christian Laettner,Shaquille O'Neal,Tom Gugliotta,Shaquille O'Neal",
+      "Who was the 1st overall pick of the NBA draft in 1993?,Chris Webber,Jamal Mashburn,Penny Hardaway,Shawn Bradley,Chris Webber",
+      "Who was the 1st overall pick of the NBA draft in 1994?,Glenn Robinson,Grant Hill,Jason Kidd,Juwan Howard,Glenn Robinson",
+      "Who was the 1st overall pick of the NBA draft in 1995?,Antonio McDyess,Joe Smith,Kevin Garnett,Rasheed Wallace,Joe Smith",
+      "Who was the 1st overall pick of the NBA draft in 1996?,Allen Iverson,Kobe Bryant,Stephon Marbury,Ray Allen,Allen Iverson",
+      "Who was the 1st overall pick of the NBA draft in 1997?,Chauncey Billups,Keith Van Horn,Tim Duncan,Tracy McGrady,Tim Duncan",
+      "Who was the 1st overall pick of the NBA draft in 1998?,Antawn Jamison,Michael Olowokandi,Raef LaFrentz,Vince Carter,Michael Olowokandi",
+      "Who was the 1st overall pick of the NBA draft in 1999?,Baron Davis,Elton Brand ,Lamar Odom,Steve Francis,Elton Brand",
+      "Who was the 1st overall pick of the NBA draft in 2000?,Darius Miles,Jamal Crawford,Kenyon Martin,Mike Miller,Kenyon Martin",
+      "Who was the 1st overall pick of the NBA draft in 2001?,DeSagana Diop,Kwame Brown,Pau Gasol,Tyson Chandler,Kwame Brown",
+      "Who was the 1st overall pick of the NBA draft in 2002?,Amar'e Stoudemire,Carlos Boozer,Caron Butler,Yao Ming,Yao Ming",
+      "Who was the 1st overall pick of the NBA draft in 2003?,Carmelo Anthony,Darko Miličić,Dwyane Wade,LeBron James,LeBron James",
+      "Who was the 1st overall pick of the NBA draft in 2004?,Andre Iguodala,Ben Gordon,Dwight Howard,Emeka Okafor,Dwight Howard",
+      "Who was the 1st overall pick of the NBA draft in 2005?,Andrew Bogut,Andrew Bynum,Chris Paul,Deron Williams,Andrew Bogut",
+      "Who was the 1st overall pick of the NBA draft in 2006?,Adam Morrison,Andrea Bargnani,Brandon Roy,LaMarcus Aldridge,Andrea Bargnani",
+      "Who was the 1st overall pick of the NBA draft in 2007?,Al Horford,Greg Oden,Joakim Noah,Kevin Durant,Greg Oden",
+      "Who was the 1st overall pick of the NBA draft in 2008?,Brook Lopez,Derrick Rose,Michael Beasley,Russell Westbrook,Derrick Rose",
+      "Who was the 1st overall pick of the NBA draft in 2009?,Blake Griffin,Hasheem Thabeet,James Harden,Stephen Curry,Blake Griffin",
+      "Who was the 1st overall pick of the NBA draft in 2010?,DeMarcus Cousins,Evan Turner,John Wall,Paul George,John Wall",
+      "Who was the 1st overall pick of the NBA draft in 2011?,Kawhi Leonard,Kemba Walker,Klay Thompson,Kyrie Irving,Kyrie Irving",
+      "Who was the 1st overall pick of the NBA draft in 2012?,Andre Drummond,Anthony Davis,Bradley Beal,Damian Lillard,Anthony Davis",
+      "Who was the 1st overall pick of the NBA draft in 2013?,Anthony Bennett,Giannis Antetokounmpo,Otto Porter Jr.,Victor Oladipo,Anthony Bennett",
+      "Who was the 1st overall pick of the NBA draft in 2014?,Andrew Wiggins,Jabari Parker,Joel Embiid,Zach Lavine,Andrew Wiggins",
+      "Who was the 1st overall pick of the NBA draft in 2015?,D'Angelo Russell,Jahlil Okafor,Karl-Anthony Towns,Kristaps Porziņģis,Karl-Anthony Towns",
+      "Who was the 1st overall pick of the NBA draft in 2016?,Ben Simmons,Brandon ingram,Jaylen Brown,Thon Maker,Ben Simmons",
+      "Who was the 1st overall pick of the NBA draft in 2017?,De'Aaron Fox,Jayson Tatum,Lonzo Ball,Markelle Fultz,Markelle Fultz",
+      "Who was the 1st overall pick of the NBA draft in 2018?,Deandre Ayton,Luka Dončić,Marvin Bagley III,Trae Young,Deandre Ayton",
+      "Who was the 1st overall pick of the NBA draft in 2019?,De'Andre Hunter,Ja Morant,RJ Barrett,Zion Williamson,Zion Williamson",
+      "Who was the 1st overall pick of the NBA draft in 2020?,Anthony Edwards,James Wiseman,LaMelo Ball,Patrick Williams,Anthony Edwards",
+      "Who was the 1st overall pick of the NBA draft in 2021?,Cade Cunningham,Evan Mobley,Jalen Green,Scottie Barnes,Cade Cunningham",
+      "Who was the 1st overall pick of the NBA draft in 2022?,Chet Holmgren,Jabari Smith Jr.,Keegan Murray,Paolo Banchero,Paolo Banchero",
+      "Who was the 1st overall pick of the NBA draft in 2023?,Brandon Miler,Amen Thompson,Ausar Thompson,Victor Wembanyama,Victor Wembanyama",
+      "Who was the 1st overall pick of the NBA draft in 2024?,Alex Sarr,Jabari Smith Jr.,Keegan Murray,Paolo Banchero,Paolo Banchero",
+      "Who was the 1st overall pick of the NBA draft in 2023?,Brandon Miler,Reed Sheppard,Stephon Castle,Zaccharie Risacher,Zaccharie Risacher",
+
+
+    ];
+
+
+    function shuffleQuestions() {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+    }
+
+    function displayCurrentQuestion() {
+      const currentQuestionString = questions[currentQuestionIndex];
+      const parts = currentQuestionString.split(",");
+      const questionText = parts[0];
+      const optionsList = parts.slice(1, -1);
+
+      questionLabel.textContent = questionText;
+      optionsContainer.innerHTML = '';
+
+      optionsList.forEach((option, index) => {
+        const optionElement = document.createElement('button');
+        optionElement.type = 'button';
+        optionElement.classList.add('option');
+        optionElement.textContent = option;
+        optionElement.addEventListener('click', () => handleOptionSelection(option));
+
+        optionsContainer.appendChild(optionElement);
+      });
+
+      remainingTime = 30;
+      timerLabel.textContent = `Time: ${remainingTime}`;
+      submitButtonPressed = false;
+    }
+
+    function handleOptionSelection(option) {
+      // Check if the option is already selected
+      if (selectedOption === option) {
+        // Deselect the option if clicked again
+        selectedOption = null;
+
+        // Enable all options
+        document.querySelectorAll('.option').forEach((element) => {
+          element.disabled = false;
+        });
+      } else {
+        // Select the clicked option
+        selectedOption = option;
+
+        // Disable other options
+        document.querySelectorAll('.option').forEach((element) => {
+          if (element.textContent !== option) {
+            element.disabled = true;
+          }
+        });
+      }
+    }
+
+    function handleAnswerSubmission() {
+      if (selectedOption && !submitButtonPressed) {
+        submitButtonPressed = true; // Set submitButtonPressed to true
+        checkAnswer(selectedOption);
+        moveToNextQuestion();
+      }
+    }
+
+    function checkAnswer(selectedOptionText) {
+      const parts = questions[currentQuestionIndex].split(",");
+      const correctAnswer = parts[parts.length - 1];
+
+      if (selectedOptionText === correctAnswer) {
+        score += 1;
+        questionsCorrect++;
+      } else {
+        score -= 1; // Adjust for penalty
+        questionsMissed++;
+      }
+    }
+
+    function moveToNextQuestion() {
+      clearInterval(timer); // Clear the existing timer
+
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        displayCurrentQuestion();
+        startTimer(); // Start a new timer for the new question
+      } else {
+        endGame();
+      }
+      updateStatsLabel();
+    }
+    function updateStatsLabel() {
+      statsLabel.textContent = `Score: ${score} Right: ${questionsCorrect} Wrong: ${questionsMissed} Expired: ${questionsTimedOut} Time Spent: ${totalTimePlayed} sec.`;
+    }
+
+    function startTotalTimeTimer() {
+      totalTimer = setInterval(() => {
+        totalTimePlayed++;
+        updateStatsLabel();
+      }, 1000);
+    }
+
+    function startTimer() {
+      timer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime >= 0) {
+          timerLabel.textContent = `Time: ${remainingTime}`;
+        } else {
+          handleTimeout();
+        }
+      }, 1000);
+    }
+
+    function handleTimeout() {
+      questionsTimedOut++;
+      score -= 1; // Adjust for penalty
+      moveToNextQuestion();
+    }
+    function endGame() {
+      // Clear the timers
+      clearInterval(timer);
+      clearInterval(totalTimer);
+
+
+
+      if (scoreDisplay) {
+        if (currentQuestionIndex > 0 && remainingTime >= 0 && totalTimePlayed > 0) {
+          scoreDisplay.innerHTML = `Your total score is ${score}. Refresh the page to start over.`;
+        } else {
+          scoreDisplay.innerHTML = 'Game Over. Refresh the page to start a new game.';
+        }
+      } else {
+        console.log('Error: score-display element not found.');
+      }
+    }
+
+
+
+
+    // Add event listeners
+    submitButton.addEventListener('click', handleAnswerSubmission);
+
+    // Initialize the game      
+    shuffleQuestions();
+    displayCurrentQuestion();
+    startTimer();
+    startTotalTimeTimer();
+
+  </script>
+</body>
+
+</html>
